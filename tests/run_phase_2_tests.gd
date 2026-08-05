@@ -595,7 +595,8 @@ func _test_issue_9_grading_and_validation() -> void:
 	_check(result.success and edge.used_fallback_route, "difficult terrain retains mandatory connectivity through a reported fallback route")
 	_check(
 		float(edge.grading_requirements.get("maximum_cut_depth", 0.0)) > 0.0
-		and bool(edge.grading_requirements.get("retaining_wall_candidate", false)),
+		and bool(edge.grading_requirements.get("retaining_wall_candidate", false))
+		and bool(edge.grading_requirements.get("infeasible_segment", false)),
 		"difficult terrain records desired elevation, cut depth, and retaining-wall requirements"
 	)
 	_check(_terrain_snapshot(terrain) == terrain_before, "grading reports remain planning data and never deform terrain")
@@ -605,7 +606,11 @@ func _test_issue_9_grading_and_validation() -> void:
 		[Vector3(-180.0, 0.0, -180.0), Vector3(180.0, 0.0, -180.0), Vector3(0.0, 0.0, 180.0)]
 	)
 	_add_issue_9_patterns(patterned, false)
-	FoundationRoadTopologyGenerator.generate(patterned, _make_flat_terrain(405, Vector2i(128, 128)), Vector2i(-64, -64))
+	var patterned_result := FoundationRoadTopologyGenerator.generate(
+		patterned,
+		_make_flat_terrain(405, Vector2i(128, 128)),
+		Vector2i(-64, -64)
+	)
 	var junction: FoundationRoadNode
 	for intersection in patterned.get_road_intersections():
 		var candidate := patterned.get_record(intersection.node_id) as FoundationRoadNode
@@ -626,7 +631,7 @@ func _test_issue_9_grading_and_validation() -> void:
 		"topology validator rejects direct highway-to-local access"
 	)
 	_check(
-		&"excessive_intersection_proximity" not in _validation_codes(result.validation_issues),
+		&"excessive_intersection_proximity" not in _validation_codes(patterned_result.validation_issues),
 		"generator enforces configured minimum spacing for its abstract intersections"
 	)
 

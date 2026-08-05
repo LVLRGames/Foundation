@@ -1308,7 +1308,7 @@ static func _calculate_grading_requirements(
 		"retaining_wall_candidate": retaining,
 		"bridge_candidate": bridge,
 		"water_crossing": water,
-		"infeasible_segment": edge.used_fallback_route or max_violation > maximum_grade,
+		"infeasible_segment": edge.used_fallback_route or max_violation > EPSILON,
 	}
 
 
