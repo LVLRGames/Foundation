@@ -44,6 +44,7 @@ show_regions = true
 show_chunks = true
 show_terrain_grid = true
 show_records = true
+show_road_topology = true
 show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -58,7 +59,7 @@ fov = 52.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 412.0
-offset_bottom = 476.0
+offset_bottom = 510.0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin"]
 layout_mode = 2
@@ -71,11 +72,11 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Foundation Phase 1 — Spatial Model"
+text = "Foundation Phase 2 — Terrain-Aware Road Topology"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
-text = "Synthetic spatial records and abstract anchors only. No procedural roads."
+text = "Abstract topology only: no meshes, lanes, navigation, traffic, intersections, or grading."
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
@@ -123,6 +124,12 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Abstract city-anchor markers, IDs, and influence"
+
+[node name="RoadToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Terrain-aware abstract road nodes, edges, costs, and slopes"
 
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true

@@ -5,13 +5,19 @@ extends Node3D
 @onready var record_options: OptionButton = %RecordOptions
 @onready var status_label: Label = %StatusLabel
 
+var terrain_data: FoundationTerrainData
+var terrain_origin_cell := Vector2i(-64, -64)
+var road_result: FoundationRoadGenerationResult
+
 
 func _ready() -> void:
 	_add_synthetic_records()
+	_generate_road_topology()
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
 	debug_view.show_terrain_grid = %GridToggle.button_pressed
+	debug_view.show_road_topology = %RoadToggle.button_pressed
 	debug_view.rebuild()
 	$Camera3D.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -105,6 +111,26 @@ func _add_synthetic_records() -> void:
 	data.mark_layer_dirty(&"sample", Rect2(-4.0, -4.0, 8.0, 8.0))
 
 
+func _generate_road_topology() -> void:
+	var terrain_profile := FoundationTerrainProfile.new()
+	terrain_profile.seed = world.world_data.metadata.seed
+	terrain_profile.grid_cells = Vector2i(128, 128)
+	terrain_profile.cell_size = world.world_data.coordinate_system.cell_size
+	terrain_profile.height_step = world.world_data.coordinate_system.height_step
+	terrain_profile.chunk_cells = world.world_data.coordinate_system.chunk_cells
+	terrain_profile.height_amplitude = 18.0
+	terrain_data = FoundationTerrainGenerator.generate(terrain_profile)
+	world.register_terrain_extent(terrain_data, terrain_origin_cell)
+	var road_profile := FoundationRoadGenerationProfile.new()
+	road_profile.extra_edge_count = 1
+	road_result = FoundationRoadTopologyGenerator.generate(
+		world.world_data,
+		terrain_data,
+		terrain_origin_cell,
+		road_profile
+	)
+
+
 func _make_id(entity_type: StringName, parent_id: StringName, semantic_key: String) -> StringName:
 	return FoundationSpatialId.make(
 		world.world_data.metadata.seed,
@@ -124,6 +150,7 @@ func _bind_controls() -> void:
 	%GridToggle.toggled.connect(_layer_toggled.bind(&"terrain_grid"))
 	%RecordToggle.toggled.connect(_layer_toggled.bind(&"records"))
 	%AnchorToggle.toggled.connect(_layer_toggled.bind(&"anchors"))
+	%RoadToggle.toggled.connect(_layer_toggled.bind(&"road_topology"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	record_options.item_selected.connect(_record_selected)
@@ -153,6 +180,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"terrain_grid": debug_view.show_terrain_grid = enabled
 		&"records": debug_view.show_records = enabled
 		&"anchors": debug_view.show_anchors = enabled
+		&"road_topology": debug_view.show_road_topology = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -168,10 +196,11 @@ func _rebuild_debug() -> void:
 
 
 func _update_status() -> void:
-	status_label.text = "%d chunks | %d regions | %d records (%d anchors) | %d debug primitives" % [
+	status_label.text = "%d chunks | %d regions | %d anchors | %d road nodes | %d road edges | %d debug primitives" % [
 		world.world_data.chunks.size(),
 		world.world_data.regions.size(),
-		world.world_data.spatial_index.get_record_count(),
 		world.world_data.get_anchors().size(),
+		world.world_data.get_road_nodes().size(),
+		world.world_data.get_road_edges().size(),
 		debug_view.last_primitive_count,
 	]

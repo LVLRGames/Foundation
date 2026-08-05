@@ -65,6 +65,7 @@ func _build_interface() -> void:
 		[&"terrain_grid", "Terrain cell grid"],
 		[&"records", "Spatial records"],
 		[&"anchors", "City anchor markers and IDs"],
+		[&"road_topology", "Road topology nodes, edges, and costs"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -131,6 +132,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"terrain_grid"].button_pressed = _view.show_terrain_grid
 	_layer_toggles[&"records"].button_pressed = _view.show_records
 	_layer_toggles[&"anchors"].button_pressed = _view.show_anchors
+	_layer_toggles[&"road_topology"].button_pressed = _view.show_road_topology
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -175,6 +177,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"terrain_grid": _view.show_terrain_grid = value
 		&"records": _view.show_records = value
 		&"anchors": _view.show_anchors = value
+		&"road_topology": _view.show_road_topology = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -206,6 +209,30 @@ func _debug_selection_changed(index: int) -> void:
 					anchor.priority_weight,
 					anchor.owning_chunks,
 					anchor.owning_regions,
+				]
+			elif record is FoundationRoadNode:
+				var road_node := record as FoundationRoadNode
+				_selection_details.text = "%s\nKind: %s\nAnchor: %s\nPosition: %s\nDegree: %d\nChunks: %s\nRegions: %s" % [
+					road_node.stable_id,
+					road_node.node_kind,
+					road_node.source_anchor_id,
+					road_node.world_position,
+					road_node.incident_edge_ids.size(),
+					road_node.owning_chunks,
+					road_node.owning_regions,
+				]
+			elif record is FoundationRoadEdge:
+				var road_edge := record as FoundationRoadEdge
+				_selection_details.text = "%s\nClass: %s\nNodes: %s -> %s\nLength: %.2f\nCost: %.2f\nMax slope: %.2f°\nChunks: %s\nRegions: %s" % [
+					road_edge.stable_id,
+					road_edge.road_class,
+					road_edge.from_node_id,
+					road_edge.to_node_id,
+					road_edge.planar_length,
+					road_edge.terrain_cost,
+					road_edge.maximum_slope_degrees,
+					road_edge.owning_chunks,
+					road_edge.owning_regions,
 				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [

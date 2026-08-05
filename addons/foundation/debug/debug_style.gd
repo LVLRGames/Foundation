@@ -16,6 +16,12 @@ extends Resource
 @export var anchor_locked := Color("ffee58")
 @export var anchor_overridden := Color("ab47bc")
 @export var anchor_influence := Color(0.15, 0.78, 0.85, 0.55)
+@export var road_node_generated := Color("fff59d")
+@export var road_node_locked := Color("ffb300")
+@export var road_node_overridden := Color("ec407a")
+@export var road_edge_generated := Color("80cbc4")
+@export var road_edge_locked := Color("ffca28")
+@export var road_edge_overridden := Color("ce93d8")
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -46,6 +52,18 @@ func color_for(purpose: StringName) -> Color:
 			return anchor_overridden
 		&"anchor_influence":
 			return anchor_influence
+		&"road_node_generated":
+			return road_node_generated
+		&"road_node_locked":
+			return road_node_locked
+		&"road_node_overridden":
+			return road_node_overridden
+		&"road_edge_generated":
+			return road_edge_generated
+		&"road_edge_locked":
+			return road_edge_locked
+		&"road_edge_overridden":
+			return road_edge_overridden
 		&"selected":
 			return selected
 		&"relationship":

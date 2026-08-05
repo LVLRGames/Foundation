@@ -132,10 +132,15 @@ static func from_dict(
 	for record_data: Dictionary in data.get("records", []):
 		var record_kind := StringName(record_data.get("record_kind", "spatial_record"))
 		var record: FoundationSpatialRecord
-		if record_kind == FoundationCityAnchor.RECORD_KIND:
-			record = FoundationCityAnchor.from_dict(record_data)
-		else:
-			record = FoundationSpatialRecord.from_dict(record_data)
+		match record_kind:
+			FoundationCityAnchor.RECORD_KIND:
+				record = FoundationCityAnchor.from_dict(record_data)
+			FoundationRoadNode.RECORD_KIND:
+				record = FoundationRoadNode.from_dict(record_data)
+			FoundationRoadEdge.RECORD_KIND:
+				record = FoundationRoadEdge.from_dict(record_data)
+			_:
+				record = FoundationSpatialRecord.from_dict(record_data)
 		layer.register_record(record)
 	layer.clear_dirty_chunks()
 	for chunk_data: Dictionary in data.get("dirty_chunks", []):
