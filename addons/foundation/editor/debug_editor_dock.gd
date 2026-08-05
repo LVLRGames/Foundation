@@ -66,6 +66,7 @@ func _build_interface() -> void:
 		[&"records", "Spatial records"],
 		[&"anchors", "City anchor markers and IDs"],
 		[&"road_topology", "Road topology nodes, edges, and costs"],
+		[&"blocks", "Block outlines, fills, metrics, and diagnostics"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -133,6 +134,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"records"].button_pressed = _view.show_records
 	_layer_toggles[&"anchors"].button_pressed = _view.show_anchors
 	_layer_toggles[&"road_topology"].button_pressed = _view.show_road_topology
+	_layer_toggles[&"blocks"].button_pressed = _view.show_blocks
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -178,6 +180,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"records": _view.show_records = value
 		&"anchors": _view.show_anchors = value
 		&"road_topology": _view.show_road_topology = value
+		&"blocks": _view.show_blocks = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -233,6 +236,18 @@ func _debug_selection_changed(index: int) -> void:
 					road_edge.maximum_slope_degrees,
 					road_edge.owning_chunks,
 					road_edge.owning_regions,
+				]
+			elif record is FoundationBlockRecord:
+				var block := record as FoundationBlockRecord
+				_selection_details.text = "%s\nArea: %.2f\nPerimeter: %.2f\nVertices: %d\nBoundary roads: %d\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					block.stable_id,
+					block.area,
+					block.perimeter,
+					block.outer_boundary.size(),
+					block.boundary_road_ids.size(),
+					block.validation_state,
+					block.owning_chunks,
+					block.owning_regions,
 				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [

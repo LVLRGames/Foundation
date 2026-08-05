@@ -139,6 +139,8 @@ static func from_dict(
 				record = FoundationRoadNode.from_dict(record_data)
 			FoundationRoadEdge.RECORD_KIND:
 				record = FoundationRoadEdge.from_dict(record_data)
+			FoundationBlockRecord.RECORD_KIND:
+				record = FoundationBlockRecord.from_dict(record_data)
 			_:
 				record = FoundationSpatialRecord.from_dict(record_data)
 		layer.register_record(record)

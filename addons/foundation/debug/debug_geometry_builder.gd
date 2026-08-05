@@ -37,8 +37,17 @@ func add_polygon_outline(points: PackedVector3Array, purpose: StringName = &"def
 func add_filled_polygon(points: PackedVector3Array, purpose: StringName = &"default") -> void:
 	if points.size() < 3:
 		return
-	for index in range(1, points.size() - 1):
-		_add_triangle(points[0], points[index], points[index + 1], purpose)
+	var polygon := PackedVector2Array()
+	for point in points:
+		polygon.append(Vector2(point.x, point.z))
+	var indices := Geometry2D.triangulate_polygon(polygon)
+	for index in range(0, indices.size(), 3):
+		_add_triangle(
+			points[indices[index]],
+			points[indices[index + 1]],
+			points[indices[index + 2]],
+			purpose
+		)
 
 
 func add_rect(bounds: Rect2, elevation := 0.05, purpose: StringName = &"default") -> void:

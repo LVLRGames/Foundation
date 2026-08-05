@@ -59,3 +59,4 @@ func register_phase_1_defaults() -> void:
 	]:
 		register_provider(FoundationDefaultDebugProvider.new(provider_id), provider_id != &"relationships")
 	register_provider(FoundationRoadTopologyDebugProvider.new())
+	register_provider(FoundationBlockDebugProvider.new())

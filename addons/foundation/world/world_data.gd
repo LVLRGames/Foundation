@@ -9,6 +9,7 @@ const OVERRIDE_LAYER: StringName = &"override"
 const CITY_ANCHOR_LAYER: StringName = FoundationCityAnchor.LAYER_TYPE
 const ROAD_NODE_LAYER: StringName = FoundationRoadNode.LAYER_TYPE
 const ROAD_EDGE_LAYER: StringName = FoundationRoadEdge.LAYER_TYPE
+const BLOCK_LAYER: StringName = FoundationBlockRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -33,6 +34,7 @@ func initialize_default_layers() -> void:
 	register_layer_type(CITY_ANCHOR_LAYER)
 	register_layer_type(ROAD_NODE_LAYER)
 	register_layer_type(ROAD_EDGE_LAYER)
+	register_layer_type(BLOCK_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -125,6 +127,17 @@ func get_road_edges() -> Array[FoundationRoadEdge]:
 	for record in layer.get_records():
 		if record is FoundationRoadEdge:
 			result.append(record as FoundationRoadEdge)
+	return result
+
+
+func get_blocks() -> Array[FoundationBlockRecord]:
+	var result: Array[FoundationBlockRecord] = []
+	var layer := get_layer(BLOCK_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationBlockRecord:
+			result.append(record as FoundationBlockRecord)
 	return result
 
 

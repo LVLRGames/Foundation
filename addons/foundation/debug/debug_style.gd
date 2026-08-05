@@ -22,6 +22,15 @@ extends Resource
 @export var road_edge_generated := Color("80cbc4")
 @export var road_edge_locked := Color("ffca28")
 @export var road_edge_overridden := Color("ce93d8")
+@export var block_generated := Color("66bb6a")
+@export var block_locked := Color("fdd835")
+@export var block_overridden := Color("ab47bc")
+@export var block_invalid := Color("ef5350")
+@export var block_fill_generated := Color(0.40, 0.73, 0.42, 0.16)
+@export var block_fill_locked := Color(0.99, 0.85, 0.21, 0.18)
+@export var block_fill_overridden := Color(0.67, 0.28, 0.74, 0.18)
+@export var block_fill_invalid := Color(0.94, 0.33, 0.31, 0.20)
+@export var block_fill_selected := Color(1.0, 1.0, 1.0, 0.24)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -64,6 +73,24 @@ func color_for(purpose: StringName) -> Color:
 			return road_edge_locked
 		&"road_edge_overridden":
 			return road_edge_overridden
+		&"block_generated":
+			return block_generated
+		&"block_locked":
+			return block_locked
+		&"block_overridden":
+			return block_overridden
+		&"block_invalid":
+			return block_invalid
+		&"block_fill_generated":
+			return block_fill_generated
+		&"block_fill_locked":
+			return block_fill_locked
+		&"block_fill_overridden":
+			return block_fill_overridden
+		&"block_fill_invalid":
+			return block_fill_invalid
+		&"block_fill_selected":
+			return block_fill_selected
 		&"selected":
 			return selected
 		&"relationship":

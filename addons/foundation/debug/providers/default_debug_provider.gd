@@ -112,7 +112,7 @@ func _append_records(
 ) -> void:
 	var selected_id := StringName(context.get("selected_record_id", ""))
 	for record in world.spatial_index.get_all_records():
-		if record is FoundationCityAnchor or record is FoundationRoadNode or record is FoundationRoadEdge:
+		if record is FoundationCityAnchor or record is FoundationRoadNode or record is FoundationRoadEdge or record is FoundationBlockRecord:
 			continue
 		var purpose := _record_purpose(record)
 		if record.stable_id == selected_id:

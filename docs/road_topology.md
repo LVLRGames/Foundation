@@ -2,6 +2,8 @@
 
 Phase 2 adds deterministic, terrain-aware abstract road topology to the Phase 1 spatial model. It produces data records only: no road mesh, lane geometry, gameplay navigation, traffic, intersection geometry, or terrain grading is part of this phase.
 
+Phase 3 now consumes these route polylines to extract bounded abstract blocks; see [block_extraction.md](block_extraction.md). Road records remain independent authoritative inputs.
+
 ## Authoritative data model
 
 `FoundationWorldData` owns two new default layers:

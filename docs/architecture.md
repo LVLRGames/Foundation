@@ -4,6 +4,8 @@ Phase 1 spatial-world responsibilities are documented separately in [spatial_mod
 
 Phase 2 terrain-aware abstract road topology consumes these arrays without grading them; see [road_topology.md](road_topology.md).
 
+Phase 3 block extraction consumes road centerlines without mutating terrain; see [block_extraction.md](block_extraction.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.
