@@ -64,7 +64,13 @@ static func generate(
 			anchors,
 			node_by_anchor
 		)
-		var selected := _select_connected_edges(anchors, candidates, active_profile.extra_edge_count)
+		var selected := _select_connected_edges(
+			anchors,
+			candidates,
+			active_profile.extra_edge_count,
+			node_by_anchor,
+			world.get_road_edges()
+		)
 		for candidate: Dictionary in selected:
 			result.expanded_cell_count += int(candidate["expanded_cells"])
 			result.total_terrain_cost += float(candidate["terrain_cost"])
@@ -80,7 +86,14 @@ static func generate(
 			)
 			var existing := world.get_record(edge_id) as FoundationRoadEdge
 			if existing != null:
-				continue
+				if _edge_connects(existing, from_node.stable_id, to_node.stable_id):
+					continue
+				edge_id = _repair_edge_id(
+					world,
+					active_profile,
+					from_anchor.stable_id,
+					to_anchor.stable_id
+				)
 			var edge := FoundationRoadEdge.new(
 				edge_id,
 				from_node.stable_id,
@@ -103,12 +116,15 @@ static func generate(
 			result.generated_edge_count += 1
 
 	_rebuild_incident_edges(world)
+	if not _anchor_nodes_connected(world, anchors, node_by_anchor):
+		return result.fail("Road generation could not connect every city-anchor node.")
 	result.success = true
 	return result
 
 
 static func _remove_replaceable_records(world: FoundationWorldData) -> Dictionary:
 	var protected_node_ids: Dictionary = {}
+	var retained_edges: Array[FoundationRoadEdge] = []
 	var preserved_edges := 0
 	for edge in world.get_road_edges():
 		if edge.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
@@ -116,7 +132,9 @@ static func _remove_replaceable_records(world: FoundationWorldData) -> Dictionar
 		else:
 			protected_node_ids[edge.from_node_id] = true
 			protected_node_ids[edge.to_node_id] = true
+			retained_edges.append(edge)
 			preserved_edges += 1
+	var retained_nodes: Array[FoundationRoadNode] = []
 	var preserved_nodes := 0
 	for node in world.get_road_nodes():
 		if (
@@ -125,7 +143,14 @@ static func _remove_replaceable_records(world: FoundationWorldData) -> Dictionar
 		):
 			world.unregister_record(node.stable_id)
 		else:
+			retained_nodes.append(node)
 			preserved_nodes += 1
+	# Authored setters update record bounds, while index ownership is registration-time data.
+	# Re-register the same objects so preserved data and identity survive with fresh buckets.
+	for edge in retained_edges:
+		world.register_record(edge)
+	for node in retained_nodes:
+		world.register_record(node)
 	return {"nodes": preserved_nodes, "edges": preserved_edges}
 
 
@@ -173,6 +198,8 @@ static func _build_candidates(
 			candidates.append({
 				"from_anchor": from_anchor,
 				"to_anchor": to_anchor,
+				"from_node_id": from_node.stable_id,
+				"to_node_id": to_node.stable_id,
 				"pair_key": "%s|%s" % [from_anchor.stable_id, to_anchor.stable_id],
 				"selection_cost": float(route["terrain_cost"]) / importance,
 				"terrain_cost": route["terrain_cost"],
@@ -187,31 +214,54 @@ static func _build_candidates(
 static func _select_connected_edges(
 	anchors: Array[FoundationCityAnchor],
 	candidates: Array[Dictionary],
-	extra_edge_count: int
+	extra_edge_count: int,
+	node_by_anchor: Dictionary,
+	preserved_edges: Array[FoundationRoadEdge]
 ) -> Array[Dictionary]:
 	var parents: Dictionary = {}
 	for anchor in anchors:
-		parents[anchor.stable_id] = anchor.stable_id
+		var node := node_by_anchor[anchor.stable_id] as FoundationRoadNode
+		parents[node.stable_id] = node.stable_id
 	var selected: Array[Dictionary] = []
 	var selected_keys: Dictionary = {}
+	var component_count := parents.size()
+	for edge in preserved_edges:
+		if (
+			not parents.has(edge.from_node_id)
+			or not parents.has(edge.to_node_id)
+			or edge.from_node_id == edge.to_node_id
+		):
+			continue
+		selected_keys[_node_pair_key(edge.from_node_id, edge.to_node_id)] = true
+		var preserved_from_root := _find_root(parents, edge.from_node_id)
+		var preserved_to_root := _find_root(parents, edge.to_node_id)
+		if preserved_from_root != preserved_to_root:
+			parents[preserved_to_root] = preserved_from_root
+			component_count -= 1
 	for candidate in candidates:
-		var from_anchor := candidate["from_anchor"] as FoundationCityAnchor
-		var to_anchor := candidate["to_anchor"] as FoundationCityAnchor
-		var from_root := _find_root(parents, from_anchor.stable_id)
-		var to_root := _find_root(parents, to_anchor.stable_id)
+		var from_node_id := StringName(candidate["from_node_id"])
+		var to_node_id := StringName(candidate["to_node_id"])
+		var from_root := _find_root(parents, from_node_id)
+		var to_root := _find_root(parents, to_node_id)
 		if from_root == to_root:
 			continue
 		parents[to_root] = from_root
 		selected.append(candidate)
-		selected_keys[candidate["pair_key"]] = true
-		if selected.size() == anchors.size() - 1:
+		selected_keys[_node_pair_key(from_node_id, to_node_id)] = true
+		component_count -= 1
+		if component_count == 1:
 			break
 	var remaining_extras := extra_edge_count
 	if remaining_extras > 0:
 		for candidate in candidates:
-			if selected_keys.has(candidate["pair_key"]):
+			var pair_key := _node_pair_key(
+				StringName(candidate["from_node_id"]),
+				StringName(candidate["to_node_id"])
+			)
+			if selected_keys.has(pair_key):
 				continue
 			selected.append(candidate)
+			selected_keys[pair_key] = true
 			remaining_extras -= 1
 			if remaining_extras == 0:
 				break
@@ -315,8 +365,7 @@ static func _find_terrain_route(
 		terrain_origin_cell,
 		from_world,
 		to_world,
-		route_cells,
-		profile.debug_elevation_offset
+		route_cells
 	)
 	return {
 		"route_points": route_points,
@@ -381,17 +430,16 @@ static func _world_route_points(
 	terrain_origin_cell: Vector2i,
 	from_world: Vector3,
 	to_world: Vector3,
-	cells: Array[Vector2i],
-	elevation_offset: float
+	cells: Array[Vector2i]
 ) -> PackedVector3Array:
 	var points := PackedVector3Array()
-	_append_unique_point(points, _terrain_position(terrain, terrain_origin_cell, from_world, elevation_offset))
+	_append_unique_point(points, from_world)
 	for cell in cells:
 		var global_cell := terrain_origin_cell + cell
 		var xz := (Vector2(global_cell) + Vector2(0.5, 0.5)) * terrain.cell_size
 		var height := sampler.get_height_at_world((Vector2(cell) + Vector2(0.5, 0.5)) * terrain.cell_size)
-		_append_unique_point(points, Vector3(xz.x, height + elevation_offset, xz.y))
-	_append_unique_point(points, _terrain_position(terrain, terrain_origin_cell, to_world, elevation_offset))
+		_append_unique_point(points, Vector3(xz.x, height, xz.y))
+	_append_unique_point(points, to_world)
 	return points
 
 
@@ -403,13 +451,12 @@ static func _append_unique_point(points: PackedVector3Array, point: Vector3) -> 
 static func _terrain_position(
 	terrain: FoundationTerrainData,
 	terrain_origin_cell: Vector2i,
-	world_position: Vector3,
-	elevation_offset := 0.0
+	world_position: Vector3
 ) -> Vector3:
 	var terrain_origin := Vector2(terrain_origin_cell) * terrain.cell_size
 	var local_xz := Vector2(world_position.x, world_position.z) - terrain_origin
 	var height := FoundationTerrainSampler.new(terrain).get_height_at_world(local_xz)
-	return Vector3(world_position.x, height + elevation_offset, world_position.z)
+	return Vector3(world_position.x, height, world_position.z)
 
 
 static func _clamped_local_cell(
@@ -582,6 +629,50 @@ static func _edge_id(
 	)
 
 
+static func _repair_edge_id(
+	world: FoundationWorldData,
+	profile: FoundationRoadGenerationProfile,
+	from_anchor_id: StringName,
+	to_anchor_id: StringName
+) -> StringName:
+	var first := from_anchor_id
+	var second := to_anchor_id
+	if String(second) < String(first):
+		first = to_anchor_id
+		second = from_anchor_id
+	var ordinal := 1
+	while true:
+		var stable_id := FoundationSpatialId.make(
+			world.metadata.seed,
+			profile.generator_version,
+			world.metadata.content_pack_version,
+			FoundationRoadEdge.ENTITY_TYPE,
+			&"",
+			"%s|%s|repair:%d" % [first, second, ordinal]
+		)
+		if world.get_record(stable_id) == null:
+			return stable_id
+		ordinal += 1
+	return &""
+
+
+static func _edge_connects(
+	edge: FoundationRoadEdge,
+	first_node_id: StringName,
+	second_node_id: StringName
+) -> bool:
+	return (
+		(edge.from_node_id == first_node_id and edge.to_node_id == second_node_id)
+		or (edge.from_node_id == second_node_id and edge.to_node_id == first_node_id)
+	)
+
+
+static func _node_pair_key(first_node_id: StringName, second_node_id: StringName) -> String:
+	if String(second_node_id) < String(first_node_id):
+		return "%s|%s" % [second_node_id, first_node_id]
+	return "%s|%s" % [first_node_id, second_node_id]
+
+
 static func _road_class_for_anchors(
 	from_anchor: FoundationCityAnchor,
 	to_anchor: FoundationCityAnchor
@@ -608,3 +699,40 @@ static func _rebuild_incident_edges(world: FoundationWorldData) -> void:
 			from_node.add_incident_edge(edge.stable_id)
 		if to_node != null:
 			to_node.add_incident_edge(edge.stable_id)
+
+
+static func _anchor_nodes_connected(
+	world: FoundationWorldData,
+	anchors: Array[FoundationCityAnchor],
+	node_by_anchor: Dictionary
+) -> bool:
+	if anchors.size() <= 1:
+		return true
+	var target_ids: Dictionary = {}
+	for anchor in anchors:
+		var node := node_by_anchor.get(anchor.stable_id) as FoundationRoadNode
+		if node == null:
+			return false
+		target_ids[node.stable_id] = true
+	var first_node := node_by_anchor[anchors[0].stable_id] as FoundationRoadNode
+	var pending: Array[StringName] = [first_node.stable_id]
+	var visited: Dictionary = {}
+	while not pending.is_empty():
+		var node_id: StringName = pending.pop_back()
+		if visited.has(node_id):
+			continue
+		visited[node_id] = true
+		var node := world.get_record(node_id) as FoundationRoadNode
+		if node == null:
+			continue
+		for edge_id in node.incident_edge_ids:
+			var edge := world.get_record(edge_id) as FoundationRoadEdge
+			if edge == null:
+				continue
+			var other_id := edge.other_node(node_id)
+			if target_ids.has(other_id) and not visited.has(other_id):
+				pending.append(other_id)
+	for target_id: StringName in target_ids:
+		if not visited.has(target_id):
+			return false
+	return true

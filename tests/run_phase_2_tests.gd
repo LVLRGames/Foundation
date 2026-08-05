@@ -15,6 +15,8 @@ func _run() -> void:
 	_test_negative_and_boundary_ownership(world)
 	_test_serialization_round_trip(world)
 	_test_regeneration_states(terrain, origin)
+	_test_preserved_edge_connectivity(terrain, origin)
+	_test_preserved_record_reindex()
 	_test_terrain_influence()
 	_test_debug_contract(world)
 	_test_scope_exclusions(world)
@@ -66,6 +68,10 @@ func _test_determinism_and_connectivity() -> Array:
 	_check(every_anchor_linked, "anchor road nodes retain source identity and deterministic incident edges")
 	_check(_terrain_snapshot(first_terrain) == terrain_before, "road generation does not mutate authoritative terrain")
 	_check(_anchor_snapshot(first_world) == anchors_before, "road generation does not mutate authoritative anchors")
+	_check(
+		_generated_edges_terminate_at_nodes(first_world),
+		"authoritative generated routes terminate exactly at their road-node positions"
+	)
 	return [first_world, first_terrain, origin]
 
 
@@ -184,6 +190,87 @@ func _test_regeneration_states(terrain: FoundationTerrainData, origin: Vector2i)
 	)
 
 
+func _test_preserved_edge_connectivity(terrain: FoundationTerrainData, origin: Vector2i) -> void:
+	var positions: Array[Vector3] = [
+		Vector3(-132.0, 0.0, -132.0),
+		Vector3(-128.0, 0.0, -1.0),
+		Vector3(64.0, 0.0, -96.0),
+		Vector3(132.0, 0.0, 132.0),
+	]
+	var world := _make_world(2026, positions)
+	FoundationRoadTopologyGenerator.generate(world, terrain, origin)
+	var leaf_node: FoundationRoadNode
+	for node in world.get_road_nodes():
+		if node.incident_edge_ids.size() == 1:
+			leaf_node = node
+			break
+	var changed_edge := world.get_record(leaf_node.incident_edge_ids[0]) as FoundationRoadEdge
+	var duplicate_edge: FoundationRoadEdge
+	for edge in world.get_road_edges():
+		if edge != changed_edge:
+			duplicate_edge = edge
+			break
+	var leaf_node_id := leaf_node.stable_id
+	var changed_edge_id := changed_edge.stable_id
+	changed_edge.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	changed_edge.from_node_id = duplicate_edge.from_node_id
+	changed_edge.to_node_id = duplicate_edge.to_node_id
+	var rerun := FoundationRoadTopologyGenerator.generate(world, terrain, origin)
+	_check(rerun.success, "regeneration succeeds when an overridden edge changes endpoint identity")
+	_check(
+		world.get_record(changed_edge_id) == changed_edge,
+		"endpoint-authored overridden edge data and object identity are preserved"
+	)
+	_check(
+		_is_connected(world) and not (world.get_record(leaf_node_id) as FoundationRoadNode).incident_edge_ids.is_empty(),
+		"actual preserved-edge connectivity seeds generation and reconnects the displaced leaf"
+	)
+	var repaired_snapshot := _topology_snapshot(world)
+	FoundationRoadTopologyGenerator.generate(world, terrain, origin)
+	_check(
+		_topology_snapshot(world) == repaired_snapshot,
+		"a deterministic repair edge reproduces when an authored edge occupies its original pair ID"
+	)
+
+
+func _test_preserved_record_reindex() -> void:
+	var positions: Array[Vector3] = [Vector3(16.0, 0.0, 16.0), Vector3(600.0, 0.0, 16.0)]
+	var world := _make_world(318, positions, Rect2(0.0, 0.0, 768.0, 256.0))
+	var terrain := _make_flat_terrain(318, Vector2i(192, 64))
+	FoundationRoadTopologyGenerator.generate(world, terrain)
+	var moved_node: FoundationRoadNode
+	for node in world.get_road_nodes():
+		if is_equal_approx(node.world_position.x, 16.0):
+			moved_node = node
+			break
+	var old_chunk := Vector2i(0, 0)
+	var new_chunk := Vector2i(3, 0)
+	var new_region := Vector2i(1, 0)
+	moved_node.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	moved_node.set_world_position(Vector3(400.0, 5.0, 16.0))
+	var rerun := FoundationRoadTopologyGenerator.generate(world, terrain)
+	_check(rerun.success and world.get_record(moved_node.stable_id) == moved_node, "overridden node is retained while it is reindexed")
+	_check(
+		moved_node.owning_chunks == [new_chunk] and moved_node.owning_regions == [new_region],
+		"preserved node ownership refreshes across chunk and region boundaries"
+	)
+	_check(
+		moved_node not in world.get_records_in_chunk(old_chunk, FoundationWorldData.ROAD_NODE_LAYER)
+		and moved_node in world.get_records_in_chunk(new_chunk, FoundationWorldData.ROAD_NODE_LAYER)
+		and moved_node in world.get_records_in_region(new_region, FoundationWorldData.ROAD_NODE_LAYER),
+		"preserved node moves from stale spatial buckets into its authored chunk and region"
+	)
+	_check(
+		moved_node.stable_id not in world.get_chunk(old_chunk).get_record_ids(FoundationWorldData.ROAD_NODE_LAYER)
+		and moved_node.stable_id in world.get_chunk(new_chunk).get_record_ids(FoundationWorldData.ROAD_NODE_LAYER),
+		"abstract chunk record references are reindexed with preserved authored nodes"
+	)
+	_check(
+		_generated_edges_terminate_at_nodes(world),
+		"routes regenerated after reindexing terminate at the full 3D authored node positions"
+	)
+
+
 func _test_terrain_influence() -> void:
 	var positions: Array[Vector3] = [Vector3(-52.0, 0.0, 0.0), Vector3(52.0, 0.0, 0.0)]
 	var flat_world := _make_world(77, positions, Rect2(-64.0, -40.0, 128.0, 80.0))
@@ -261,6 +348,15 @@ func _test_debug_contract(world: FoundationWorldData) -> void:
 		var text := String(label.get("text", ""))
 		has_metadata_label = has_metadata_label or ("cost" in text and "max" in text)
 	_check(has_metadata_label, "road debug labels expose useful topology cost and slope metadata")
+	var first_edge := world.get_road_edges()[0]
+	var debug_offset := float(
+		world.get_layer(FoundationWorldData.ROAD_EDGE_LAYER).metadata["profile"]["debug_elevation_offset"]
+	)
+	_check(
+		not builder.line_vertices.is_empty()
+		and builder.line_vertices[0] == first_edge.route_points[0] + Vector3.UP * debug_offset,
+		"road debug provider applies visual elevation without changing authoritative route points"
+	)
 	var invocation_count := provider.invocation_count
 	registry.set_layer_enabled(&"road_topology", false)
 	var disabled := registry.build(world)
@@ -373,6 +469,23 @@ func _is_connected(world: FoundationWorldData) -> bool:
 			if not visited.has(other):
 				pending.append(other)
 	return visited.size() == nodes.size()
+
+
+func _generated_edges_terminate_at_nodes(world: FoundationWorldData) -> bool:
+	for edge in world.get_road_edges():
+		if edge.authorship_state != FoundationSpatialRecord.AuthorshipState.GENERATED:
+			continue
+		if edge.route_points.is_empty():
+			return false
+		var from_node := world.get_record(edge.from_node_id) as FoundationRoadNode
+		var to_node := world.get_record(edge.to_node_id) as FoundationRoadNode
+		if from_node == null or to_node == null:
+			return false
+		if edge.route_points[0] != from_node.world_position:
+			return false
+		if edge.route_points[-1] != to_node.world_position:
+			return false
+	return true
 
 
 func _topology_snapshot(world: FoundationWorldData) -> String:

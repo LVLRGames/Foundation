@@ -9,7 +9,7 @@ Phase 2 adds deterministic, terrain-aware abstract road topology to the Phase 1 
 - `road_nodes`: `FoundationRoadNode` records, currently one anchor-kind node per city anchor
 - `road_edges`: `FoundationRoadEdge` records connecting node stable IDs and storing a sampled route polyline
 
-Both record types extend `FoundationSpatialRecord`, remain `RefCounted`, and serialize without scene-tree references. A road node stores its source anchor and sorted incident edge IDs. A road edge stores endpoint IDs, an open road-class vocabulary, terrain metrics, fallback status, and a `PackedVector3Array` route. Bounds are derived from that polyline so the existing chunk/region index can directly query every spatial bucket it crosses.
+Both record types extend `FoundationSpatialRecord`, remain `RefCounted`, and serialize without scene-tree references. A road node stores its source anchor and sorted incident edge IDs. A road edge stores endpoint IDs, an open road-class vocabulary, terrain metrics, fallback status, and a `PackedVector3Array` route. Generated route endpoints exactly match their full 3D road-node positions; intermediate points remain terrain-accurate. Bounds are derived from that polyline so the existing chunk/region index can directly query every spatial bucket it crosses.
 
 The route polyline is a generation artifact for later systems to consume. It is not a navigation path, does not expose a runtime route-query API, and does not instantiate geometry.
 
@@ -72,13 +72,13 @@ Road layers carry the serialized generation profile, signed terrain origin, and 
 - `LOCKED`: preserved exactly on regeneration;
 - `OVERRIDDEN`: preserved as authored data.
 
-Generated edges route from preserved locked or overridden node positions, so an authored node adjustment remains meaningful on the next pass. Locked edges themselves are retained exactly. After generation, adjacency is rebuilt from the complete generated-and-preserved edge set. World serialization restores typed road nodes and edges, stable IDs, route points, terrain metrics, authorship, ownership, adjacency, and layer metadata. The format is versioned and Resource/JSON-friendly; it is not yet a final persistence backend.
+Generated edges route from preserved locked or overridden node positions, so an authored node adjustment remains meaningful on the next pass. Preserved records are re-registered in place so authored bounds receive fresh chunk and region ownership without replacing the object or its data. Locked edges themselves are retained exactly. Connectivity is seeded from their actual valid endpoint graph; when an authored edge occupies a deterministic pair ID but no longer connects that pair, a deterministic repair edge supplies any missing connection. After generation, adjacency is rebuilt from the complete generated-and-preserved edge set. World serialization restores typed road nodes and edges, stable IDs, route points, terrain metrics, authorship, ownership, adjacency, and layer metadata. The format is versioned and Resource/JSON-friendly; it is not yet a final persistence backend.
 
 ## Debug visualization
 
 `FoundationRoadTopologyDebugProvider` emits node crosses, route polylines, and optional labels containing node degree or edge class, ID, length, terrain cost, maximum slope, and ownership counts. Semantic colors distinguish generated, locked, and overridden records.
 
-All topology line primitives flow through the existing `FoundationDebugGeometryBuilder` and are projected into one batched line mesh. Labels are disposable `Label3D` debug objects. Disabling the provider prevents its invocation and primitive allocation. Debug output is read-only and non-authoritative.
+All topology line primitives flow through the existing `FoundationDebugGeometryBuilder` and are projected into one batched line mesh. The profile's debug elevation offset is applied only while the provider copies route points into that disposable builder; it is never baked into authoritative or serialized edge geometry. Labels are disposable `Label3D` debug objects. Disabling the provider prevents its invocation and primitive allocation. Debug output is read-only and non-authoritative.
 
 ## Explicit Phase 2 exclusions
 

@@ -15,13 +15,19 @@ func append_debug(
 ) -> void:
 	invocation_count += 1
 	var selected_id := StringName(context.get("selected_record_id", ""))
+	var edge_layer := world.get_layer(FoundationWorldData.ROAD_EDGE_LAYER)
+	var profile_data: Dictionary = edge_layer.metadata.get("profile", {}) if edge_layer != null else {}
+	var elevation_offset := float(profile_data.get("debug_elevation_offset", 0.35))
 	for edge in world.get_road_edges():
 		var purpose := _edge_purpose(edge)
 		if edge.stable_id == selected_id:
 			purpose = &"selected"
-		builder.add_polyline(edge.route_points, false, purpose)
-		if not edge.route_points.is_empty():
-			var midpoint := edge.route_points[edge.route_points.size() / 2] + Vector3.UP * 2.0
+		var debug_points := PackedVector3Array()
+		for point in edge.route_points:
+			debug_points.append(point + Vector3.UP * elevation_offset)
+		builder.add_polyline(debug_points, false, purpose)
+		if not debug_points.is_empty():
+			var midpoint := debug_points[debug_points.size() / 2] + Vector3.UP * 2.0
 			builder.add_text(
 				midpoint,
 				"%s\n%s\nL %.1f | cost %.1f | max %.1f°\n%d chunks | %d regions" % [
