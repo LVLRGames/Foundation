@@ -1,10 +1,11 @@
 @tool
 class_name FoundationDebugEditorDock
-extends VBoxContainer
+extends ScrollContainer
 
 ## Editor controls affect only disposable debug presentation, never world generation.
 
 var _editor_interface: EditorInterface
+var _content: VBoxContainer
 var _view: FoundationDebugView
 var _status: Label
 var _global_toggle: CheckBox
@@ -22,6 +23,13 @@ func initialize(editor_interface: EditorInterface) -> void:
 
 func _ready() -> void:
 	name = "Foundation Debug"
+	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content = VBoxContainer.new()
+	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(_content)
 	_build_interface()
 	_connect_selection()
 	_editor_selection_changed()
@@ -39,16 +47,16 @@ func _build_interface() -> void:
 	var heading := Label.new()
 	heading.text = "Foundation Debug View"
 	heading.add_theme_font_size_override("font_size", 18)
-	add_child(heading)
+	_content.add_child(heading)
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_status)
+	_content.add_child(_status)
 
 	_global_toggle = CheckBox.new()
 	_global_toggle.text = "Debug rendering enabled"
 	_global_toggle.toggled.connect(_global_toggled)
-	add_child(_global_toggle)
+	_content.add_child(_global_toggle)
 
 	for layer_data in [
 		[&"world_bounds", "World bounds"],
@@ -62,28 +70,28 @@ func _build_interface() -> void:
 		toggle.text = layer_data[1]
 		toggle.toggled.connect(_layer_toggled.bind(layer_data[0]))
 		_layer_toggles[layer_data[0]] = toggle
-		add_child(toggle)
+		_content.add_child(toggle)
 
 	_follow_selection = CheckBox.new()
 	_follow_selection.text = "Follow editor selection"
 	_follow_selection.button_pressed = true
-	add_child(_follow_selection)
+	_content.add_child(_follow_selection)
 
 	var selection_label := Label.new()
 	selection_label.text = "Debug selection"
-	add_child(selection_label)
+	_content.add_child(selection_label)
 	_selection_options = OptionButton.new()
 	_selection_options.item_selected.connect(_debug_selection_changed)
-	add_child(_selection_options)
+	_content.add_child(_selection_options)
 
 	_selection_details = Label.new()
 	_selection_details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_selection_details)
+	_content.add_child(_selection_details)
 
 	var rebuild_button := Button.new()
 	rebuild_button.text = "Rebuild Debug Display"
 	rebuild_button.pressed.connect(_rebuild_pressed)
-	add_child(rebuild_button)
+	_content.add_child(rebuild_button)
 
 
 func _connect_selection() -> void:

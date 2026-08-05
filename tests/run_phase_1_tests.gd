@@ -1,5 +1,8 @@
 extends SceneTree
 
+const DEBUG_EDITOR_DOCK_SCRIPT := preload("res://addons/foundation/editor/debug_editor_dock.gd")
+const TERRAIN_EDITOR_DOCK_SCRIPT := preload("res://addons/foundation/editor/terrain_editor_dock.gd")
+
 var _failures := PackedStringArray()
 
 
@@ -18,6 +21,7 @@ func _run() -> void:
 	_test_terrain_adapter(world)
 	_test_debug_contract(world)
 	_test_runtime_debug_view(world)
+	_test_editor_dock_layout()
 
 	if _failures.is_empty():
 		print("Foundation Phase 1 assertions: PASS")
@@ -273,6 +277,26 @@ func _test_runtime_debug_view(world: FoundationWorldData) -> void:
 	debug_view.set_debug_enabled(false)
 	_check(debug_view.last_primitive_count == 0, "disabling the runtime view disposes its geometry")
 	world_node.free()
+
+
+func _test_editor_dock_layout() -> void:
+	var debug_dock := DEBUG_EDITOR_DOCK_SCRIPT.new() as ScrollContainer
+	root.add_child(debug_dock)
+	var debug_content := debug_dock.get_child(0) as VBoxContainer
+	_check(
+		debug_dock.get_combined_minimum_size().y < debug_content.get_combined_minimum_size().y,
+		"debug controls scroll without imposing their stacked height on the editor"
+	)
+	debug_dock.free()
+
+	var terrain_dock := TERRAIN_EDITOR_DOCK_SCRIPT.new() as ScrollContainer
+	root.add_child(terrain_dock)
+	var terrain_content := terrain_dock.get_child(0) as VBoxContainer
+	_check(
+		terrain_dock.get_combined_minimum_size().y < terrain_content.get_combined_minimum_size().y,
+		"terrain controls scroll without imposing their stacked height on the editor"
+	)
+	terrain_dock.free()
 
 
 func _check(condition: bool, message: String) -> void:
