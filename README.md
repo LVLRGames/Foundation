@@ -2,18 +2,19 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 2 baseline combines chunked terrain, the renderer-independent Phase 1 spatial model and city anchors, and deterministic terrain-aware abstract road topology. Roads exist as stable node and edge records with terrain-routed polylines, spatial ownership, versioned serialization, authorship states, and batched debug presentation.
+The current Phase 2 baseline combines chunked terrain, the renderer-independent Phase 1 spatial model and city anchors, and a deterministic terrain-aware abstract road graph. Roads include stable nodes and edges, functional hierarchy, district-style pattern inputs, logical-road identity, abstract intersections, desired elevation and grading reports, validation, spatial ownership, versioned serialization, authorship states, and batched debug presentation.
 
-Road meshes, lane geometry, gameplay navigation, traffic, intersections, and terrain grading are intentionally not implemented.
+Road meshes, physical intersections, lane geometry, gameplay navigation, traffic, blocks/parcels, and terrain deformation are intentionally not implemented.
 
 ## Run the Phase 2 demo
 
 1. Open the repository in Godot 4.7 and confirm **Project > Project Settings > Plugins > Foundation** is enabled.
 2. Run the project. The main scene is `demo/spatial_model_demo.tscn`.
-3. Toggle world, region, chunk, terrain-grid, anchor, relationship, and road-topology overlays.
-4. Select stable anchor, road-node, or road-edge IDs to inspect abstract data and routing metadata.
+3. Select a seed/profile and enable any combination of downtown-grid, suburban-loop, and rural terrain-following pattern areas.
+4. Toggle topology, routing-cost heatmap, accepted/rejected candidate, and validation overlays.
+5. Regenerate the full pass or only logical roads/intersections, clear generated road data, and inspect or change test authorship state on stable pattern, node, edge, logical-road, or intersection records.
 
-The demo generates a signed-origin Phase 0 terrain, registers it with the Phase 1 world, and connects three anchors with Phase 2 topology. It covers negative coordinates, chunk/region labels, state-colored road records, route costs and slope metadata. The original terrain-only scene remains at `demo/terrain_demo.tscn`.
+The demo generates a signed-origin Phase 0 terrain, registers it with the Phase 1 world, and connects five anchors plus three pattern areas with Phase 2 topology. It covers negative coordinates, hierarchy colors, logical continuity, intersection degrees, terrain costs, desired elevation, grading warnings, and chunk/region ownership. The original terrain-only scene remains at `demo/terrain_demo.tscn`.
 
 ## Locked spatial defaults
 
@@ -51,6 +52,14 @@ var anchor := FoundationCityAnchor.create(
 )
 world.register_record(anchor)
 
+var downtown := FoundationRoadPatternArea.create(
+    metadata,
+    "downtown-core",
+    Rect2(-96, -96, 128, 128),
+    FoundationRoadPatternArea.DOWNTOWN_GRID
+)
+world.register_record(downtown)
+
 var terrain_profile := FoundationTerrainProfile.new()
 terrain_profile.seed = metadata.seed
 terrain_profile.grid_cells = Vector2i(128, 128)
@@ -75,6 +84,8 @@ Queries return stable-ID order:
 var nearby := world.query_bounds(Rect2(-64, -64, 128, 128))
 var road_nodes := world.get_road_nodes()
 var road_edges := world.get_road_edges()
+var logical_roads := world.get_logical_roads()
+var intersections := world.get_road_intersections()
 var chunk_edges := world.get_records_in_chunk(Vector2i(-1, 0), &"road_edges")
 ```
 

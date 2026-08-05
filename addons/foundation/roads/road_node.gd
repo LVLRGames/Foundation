@@ -3,16 +3,28 @@ extends FoundationSpatialRecord
 
 ## Abstract road-topology vertex. It owns no mesh, lane, intersection, or navigation state.
 
-const ROAD_NODE_FORMAT_VERSION := 1
+const ROAD_NODE_FORMAT_VERSION := 2
 const RECORD_KIND: StringName = &"road_node"
 const ENTITY_TYPE: StringName = &"road_node"
 const LAYER_TYPE: StringName = &"road_nodes"
-const KIND_ANCHOR: StringName = &"anchor"
+const ROLE_ANCHOR_CONNECTION: StringName = &"anchor_connection"
+const ROLE_INTERSECTION: StringName = &"intersection"
+const ROLE_BEND: StringName = &"bend_control_point"
+const ROLE_DEAD_END: StringName = &"dead_end"
+const ROLE_MAP_EXIT: StringName = &"map_exit"
+const ROLE_BRIDGE_CANDIDATE: StringName = &"bridge_candidate"
+const KIND_ANCHOR: StringName = ROLE_ANCHOR_CONNECTION
+
+const INTENT_OPTIONAL: StringName = &"optional"
+const INTENT_PREFERRED: StringName = &"preferred"
+const INTENT_MANDATORY: StringName = &"mandatory"
 
 var world_position := Vector3.ZERO
 var node_kind: StringName = KIND_ANCHOR
 var source_anchor_id: StringName
 var incident_edge_ids: Array[StringName] = []
+var terrain_sampled_elevation := 0.0
+var anchor_connection_intent: StringName = INTENT_OPTIONAL
 
 
 func _init(
@@ -29,6 +41,7 @@ func _init(
 		p_source_anchor_id
 	)
 	world_position = p_world_position
+	terrain_sampled_elevation = p_world_position.y
 	node_kind = p_node_kind
 	source_anchor_id = p_source_anchor_id
 
@@ -65,6 +78,8 @@ func to_dict() -> Dictionary:
 	data["node_kind"] = String(node_kind)
 	data["source_anchor_id"] = String(source_anchor_id)
 	data["incident_edge_ids"] = serialized_edges
+	data["terrain_sampled_elevation"] = terrain_sampled_elevation
+	data["anchor_connection_intent"] = String(anchor_connection_intent)
 	return data
 
 
@@ -83,10 +98,14 @@ static func from_dict(data: Dictionary) -> FoundationRoadNode:
 	FoundationSpatialRecord.apply_serialized_fields(node, data)
 	node.entity_type = ENTITY_TYPE
 	node.layer_type = LAYER_TYPE
+	if node.node_kind == &"anchor":
+		node.node_kind = ROLE_ANCHOR_CONNECTION
 	node.incident_edge_ids.clear()
 	for edge_id: String in data.get("incident_edge_ids", []):
 		node.incident_edge_ids.append(StringName(edge_id))
 	node.incident_edge_ids.sort_custom(func(a: StringName, b: StringName) -> bool:
 		return String(a) < String(b)
 	)
+	node.terrain_sampled_elevation = float(data.get("terrain_sampled_elevation", node.world_position.y))
+	node.anchor_connection_intent = StringName(data.get("anchor_connection_intent", String(INTENT_OPTIONAL)))
 	return node

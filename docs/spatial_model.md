@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_nodes` and `road_edges`. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
 
 ## Coordinate conventions
 

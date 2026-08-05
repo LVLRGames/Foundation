@@ -65,7 +65,10 @@ func _build_interface() -> void:
 		[&"terrain_grid", "Terrain cell grid"],
 		[&"records", "Spatial records"],
 		[&"anchors", "City anchor markers and IDs"],
-		[&"road_topology", "Road topology nodes, edges, and costs"],
+		[&"road_topology", "Road topology, hierarchy, and logical identity"],
+		[&"road_costs", "Terrain routing-cost heatmap"],
+		[&"road_candidates", "Accepted and rejected anchor candidates"],
+		[&"road_validation", "Grading and topology validation warnings"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -133,6 +136,9 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"records"].button_pressed = _view.show_records
 	_layer_toggles[&"anchors"].button_pressed = _view.show_anchors
 	_layer_toggles[&"road_topology"].button_pressed = _view.show_road_topology
+	_layer_toggles[&"road_costs"].button_pressed = _view.show_road_costs
+	_layer_toggles[&"road_candidates"].button_pressed = _view.show_road_candidates
+	_layer_toggles[&"road_validation"].button_pressed = _view.show_road_validation
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -178,6 +184,9 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"records": _view.show_records = value
 		&"anchors": _view.show_anchors = value
 		&"road_topology": _view.show_road_topology = value
+		&"road_costs": _view.show_road_costs = value
+		&"road_candidates": _view.show_road_candidates = value
+		&"road_validation": _view.show_road_validation = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -220,6 +229,28 @@ func _debug_selection_changed(index: int) -> void:
 					road_node.incident_edge_ids.size(),
 					road_node.owning_chunks,
 					road_node.owning_regions,
+				]
+			elif record is FoundationRoadPatternArea:
+				var pattern := record as FoundationRoadPatternArea
+				_selection_details.text = "%s\nPattern: %s\nBounds: %s\nOrientation: %.1f deg\nSpacing: %.1f\nTerrain following: %.2f" % [
+					pattern.stable_id, pattern.pattern_family, pattern.world_bounds,
+					pattern.preferred_orientation_degrees, pattern.preferred_spacing,
+					pattern.terrain_following_strength,
+				]
+			elif record is FoundationLogicalRoad:
+				var logical := record as FoundationLogicalRoad
+				_selection_details.text = "%s\nClass: %s\nEdges: %s\nContinuity priority: %.2f\nNaming key: %s\nRoles: %s -> %s" % [
+					logical.stable_id, logical.functional_class, logical.edge_ids,
+					logical.continuity_priority, logical.provisional_naming_key,
+					logical.start_semantic_role, logical.end_semantic_role,
+				]
+			elif record is FoundationIntersectionRecord:
+				var intersection := record as FoundationIntersectionRecord
+				_selection_details.text = "%s\nNode: %s\nType: %s\nDegree: %d\nIncoming: %s\nOutgoing: %s\nClass relationships: %s" % [
+					intersection.stable_id, intersection.node_id,
+					intersection.provisional_intersection_type, intersection.intersection_degree,
+					intersection.incoming_edge_ids, intersection.outgoing_edge_ids,
+					intersection.road_class_relationships,
 				]
 			elif record is FoundationRoadEdge:
 				var road_edge := record as FoundationRoadEdge

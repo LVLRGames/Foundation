@@ -45,6 +45,9 @@ show_chunks = true
 show_terrain_grid = true
 show_records = true
 show_road_topology = true
+show_road_costs = true
+show_road_candidates = false
+show_road_validation = true
 show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -59,7 +62,7 @@ fov = 52.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 412.0
-offset_bottom = 510.0
+offset_bottom = 690.0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin"]
 layout_mode = 2
@@ -76,12 +79,56 @@ text = "Foundation Phase 2 — Terrain-Aware Road Topology"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
-text = "Abstract topology only: no meshes, lanes, navigation, traffic, intersections, or grading."
+text = "Abstract planning only: hierarchy, logical roads, intersections, and grading reports; no physical road geometry."
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Initializing world data..."
+
+[node name="GenerationControls" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="SeedLabel" type="Label" parent="UI/Margin/Panel/Content/GenerationControls"]
+layout_mode = 2
+text = "Seed"
+
+[node name="SeedSpin" type="SpinBox" parent="UI/Margin/Panel/Content/GenerationControls"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 2147483647.0
+value = 1337.0
+
+[node name="ProfileOptions" type="OptionButton" parent="UI/Margin/Panel/Content/GenerationControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PatternLabel" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+text = "Road-pattern test areas"
+
+[node name="PatternControls" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="DowntownPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Grid"
+
+[node name="SuburbanPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Suburban"
+
+[node name="RuralPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Rural"
 
 [node name="DebugToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
@@ -131,11 +178,49 @@ layout_mode = 2
 button_pressed = true
 text = "Terrain-aware abstract road nodes, edges, costs, and slopes"
 
+[node name="RoadPlanningToggles" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="CostToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Cost heatmap"
+
+[node name="CandidateToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Candidates"
+
+[node name="ValidationToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Warnings"
+
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Selected parent/child relationships"
+
+[node name="StageControls" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="StageOptions" type="OptionButton" parent="UI/Margin/Panel/Content/StageControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RegenerateButton" type="Button" parent="UI/Margin/Panel/Content/StageControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Regenerate"
+
+[node name="ClearRoadButton" type="Button" parent="UI/Margin/Panel/Content/StageControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Clear roads"
 
 [node name="RecordLabel" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
@@ -144,6 +229,19 @@ text = "Selected stable record ID"
 [node name="RecordOptions" type="OptionButton" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="AuthorshipControls" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="StateOptions" type="OptionButton" parent="UI/Margin/Panel/Content/AuthorshipControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ApplyStateButton" type="Button" parent="UI/Margin/Panel/Content/AuthorshipControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply authorship state"
 
 [node name="RebuildButton" type="Button" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
