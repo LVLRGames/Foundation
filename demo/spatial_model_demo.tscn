@@ -1,0 +1,138 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://demo/spatial_model_demo.gd" id="1_demo"]
+[ext_resource type="Script" path="res://addons/foundation/world/foundation_world.gd" id="2_world"]
+[ext_resource type="Script" path="res://addons/foundation/debug/debug_view.gd" id="3_debug"]
+
+[sub_resource type="Environment" id="Environment_demo"]
+background_mode = 1
+background_color = Color(0.055, 0.071, 0.09, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.72, 0.82, 1)
+ambient_light_energy = 0.55
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+bg_color = Color(0.035, 0.047, 0.063, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.4, 0.55, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="SpatialModelDemo" type="Node3D"]
+script = ExtResource("1_demo")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_demo")
+
+[node name="FoundationWorld" type="Node3D" parent="."]
+script = ExtResource("2_world")
+seed = 1337
+world_bounds = Rect2(-256, -256, 512, 512)
+region_chunks = Vector2i(2, 2)
+
+[node name="FoundationDebugView" type="Node3D" parent="FoundationWorld"]
+script = ExtResource("3_debug")
+debug_enabled = false
+world_path = NodePath("..")
+show_world_bounds = true
+show_regions = true
+show_chunks = true
+show_terrain_grid = true
+show_records = true
+show_relationships = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 430, 360)
+current = true
+far = 1600.0
+fov = 52.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Margin" type="MarginContainer" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 412.0
+offset_bottom = 442.0
+
+[node name="Panel" type="PanelContainer" parent="UI/Margin"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_panel")
+
+[node name="Content" type="VBoxContainer" parent="UI/Margin/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Foundation Phase 1 — Spatial Model"
+
+[node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+text = "Synthetic spatial records only. No procedural roads."
+
+[node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Initializing world data..."
+
+[node name="DebugToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Debug rendering enabled"
+
+[node name="WorldToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "World bounds"
+
+[node name="RegionToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Region bounds and IDs"
+
+[node name="ChunkToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Chunk boundaries, coordinates, and dirty state"
+
+[node name="GridToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "4 m terrain cell grid"
+
+[node name="RecordToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Sample record bounds and layer membership"
+
+[node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Selected parent/child relationships"
+
+[node name="RecordLabel" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+text = "Selected stable record ID"
+
+[node name="RecordOptions" type="OptionButton" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RebuildButton" type="Button" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Rebuild Disposable Debug View"

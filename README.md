@@ -1,79 +1,89 @@
 # Foundation
 
-Foundation is LVLR Studios' reusable, deterministic world and city generation addon for Godot 4.7. Phase 0 supplies the production-oriented terrain foundation only: authoritative data, deterministic generation, query APIs, chunk rendering, matching collision, explicit surface IDs, semantic terrain edits, editor controls, and a development demo.
+Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-Roads, districts, blocks, parcels, buildings, interiors, traffic, vegetation, and the full streaming/LOD state machine are intentionally outside Phase 0.
+The current Phase 1 baseline combines the Phase 0 chunked terrain subsystem with a renderer-independent spatial world model: centralized coordinates, stable IDs, spatial records and layers, chunk-bucket indexing, abstract regions/chunks, versioned serialization seams, and a disposable layered debug view.
 
-## Run the Phase 0 demo
+Procedural roads, blocks, parcels, buildings, and other city generators are intentionally not implemented yet.
 
-1. Open this repository as a Godot 4.7 project.
-2. Confirm **Project > Project Settings > Plugins > Foundation** is enabled. It is enabled in this development project by default.
-3. Run the project. `demo/terrain_demo.tscn` generates four 32×32-cell chunks from the visible seed.
-4. Use **Same seed** to demonstrate reproducibility, **Next seed** to generate a different height grid, and WASD plus Q/E to inspect the terrain.
+## Run the Phase 1 demo
 
-The default profile uses 4 m cells, 1 m height quantization, 32×32-cell chunks, and a 64×64-cell demo world. A full default chunk therefore covers 128×128 m and reads a 33×33 vertex region from shared authoritative data. The demo selects flat normals for a blockier retro appearance; `FoundationTerrain.smooth_normals` switches to an indexed shared-vertex mesh with globally consistent border normals.
+1. Open the repository in Godot 4.7 and confirm **Project > Project Settings > Plugins > Foundation** is enabled.
+2. Run the project. The main scene is `demo/spatial_model_demo.tscn`.
+3. Toggle world, region, chunk, 4 m terrain-grid, record, and relationship overlays.
+4. Select synthetic stable record IDs to inspect parent/child relationships.
 
-## Install in another project
+The demo covers positive and negative chunk coordinates, region labels, dirty-chunk coloring, and records that span one or several chunk buckets. Its records are synthetic Phase 1 fixtures—not roads.
 
-Copy `addons/foundation/` into the target project's `addons/` directory and enable **Foundation** in the Plugins tab. Add a `FoundationTerrain` node, assign or edit its `FoundationTerrainProfile`, then use the **Foundation Terrain** dock's explicit **Generate Terrain** action.
+The Phase 0 terrain demonstration remains available at `demo/terrain_demo.tscn`.
 
-The dock exposes seed, terrain dimensions, cell size, height step, and noise controls. Editing values does not automatically rebuild terrain, which prevents accidental editor stalls on large profiles. **Rebuild Dirty Chunks** only refreshes chunks marked by data edits.
+## Locked spatial defaults
 
-At runtime, the same path is available without editor classes:
+- terrain cell: 4 m by 4 m
+- elevation step: 1 m
+- chunk: 32 by 32 terrain cells
+- chunk world size: 128 m by 128 m
+- terrain chunk vertex region: 33 by 33 shared vertices
+- region size: configurable in whole chunks
+- future building modules: 1 m or 2 m while aligned to the 4 m grammar
 
-```gdscript
-var terrain := FoundationTerrain.new()
-terrain.profile.seed = 12345
-terrain.profile.grid_cells = Vector2i(64, 64)
-add_child(terrain)
-terrain.generate_terrain()
-```
+All coordinate conversion goes through `FoundationCoordinateSystem`. Negative positions use floor division, so -1 m is in chunk -1 and -128 m is the beginning of chunk -1.
 
-## Query and modify terrain
+## Install and create a world
 
-Consumers use `FoundationTerrainSampler`, not mesh nodes:
+Copy `addons/foundation/` into another project's `addons/` directory and enable **Foundation**. Add a `FoundationWorld` node and optionally a `FoundationDebugView` child.
 
-```gdscript
-var sampler := terrain.get_sampler()
-var height := sampler.get_height_at_world(Vector2(40.0, 72.0))
-var slope := sampler.get_slope_degrees_at_world(Vector2(40.0, 72.0))
-var surface_id := sampler.get_surface_at_world(Vector2(40.0, 72.0))
-var buildable := sampler.is_buildable_at_world(Vector2(40.0, 72.0), 15.0)
-```
-
-Semantic edits write to `FoundationTerrainData` and mark only affected chunks. A vertex on a chunk border dirties every neighboring chunk that uses it:
+Runtime data can also be created without scene-tree nodes:
 
 ```gdscript
-var modifier := terrain.get_modifier()
-modifier.add_height(Vector2i(32, 10), 1.0, FoundationTerrainData.ModificationSource.ROAD_FILL)
-modifier.flatten(Rect2i(8, 8, 5, 5), 3.0, FoundationTerrainData.ModificationSource.BUILDING_PAD)
-modifier.set_surface(Vector2i(9, 9), FoundationTerrainSurface.Type.CONCRETE)
-terrain.rebuild_dirty_chunks()
+var metadata := FoundationWorldMetadata.new()
+metadata.seed = 12345
+metadata.world_bounds = Rect2(-256, -256, 512, 512)
+
+var coordinates := FoundationCoordinateSystem.new()
+var world := FoundationWorldData.new(metadata, coordinates)
+world.initialize_default_layers()
+world.initialize_partitions()
+
+var record_id := FoundationSpatialId.make(
+    metadata.seed,
+    metadata.generator_version,
+    metadata.content_pack_version,
+    &"site",
+    &"",
+    "civic-center"
+)
+var record := FoundationSpatialRecord.new(
+    record_id,
+    &"site",
+    &"feature",
+    Rect2(-24, -16, 48, 32)
+)
+world.register_record(record)
 ```
 
-Phase 0 records the last semantic modification source per vertex. A future layered grading stack can expand that seam without moving ownership into rendering nodes.
+Queries return stable-ID order:
 
-## Determinism contract
-
-Foundation derives stable named sub-seeds instead of using uncontrolled `rand*()` calls or a single sequential RNG. Phase 0 uses independent `terrain_height` and `terrain_surface` streams; future systems can add roads, rivers, parcels, and buildings without perturbing existing output.
-
-The reproducibility inputs stored by terrain data are:
-
-- world seed
-- Foundation generator version
-- content-pack version
-- complete terrain profile
-
-Height generation explicitly applies `round(raw_height / height_step) * height_step`. The chosen diagonal for every cell is also stored in data so the sampler, visual mesh, and collision agree.
-
-## Development assertions
-
-Run the Phase 0 assertions with a Godot 4.7 executable:
-
-```text
-godot --headless --path . --script res://tests/run_phase_0_tests.gd
+```gdscript
+var record := world.get_record(record_id)
+var nearby := world.query_bounds(Rect2(-64, -64, 128, 128), [&"feature"])
+var chunk_records := world.get_records_in_chunk(Vector2i(-1, 0), &"feature")
+var dirty_chunks := world.mark_layer_dirty(&"feature", record.world_bounds)
 ```
 
-The suite checks same-seed reproduction, different-seed variation, exact quantization, shared chunk borders, boundary dirty propagation, read-only meshing, sampler queries, chunk creation, and collision geometry.
+## Terrain integration
 
-See [docs/architecture.md](docs/architecture.md) for data flow, coordinate conventions, chunk lifetime seams, and current limitations. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the visual reference attribution.
+Phase 0 terrain remains authoritative in `FoundationTerrainData`. `FoundationWorld.register_terrain_extent()` adapts its spatial extent into the terrain layer without moving or rewriting terrain arrays. Terrain generation, sampling, modification, rendering, and collision remain documented in [docs/architecture.md](docs/architecture.md).
+
+## Validation
+
+Run both acceptance suites with the installed Godot 4.7 executable:
+
+```powershell
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_0_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_1_tests.gd
+```
+
+Phase 1 assertions cover negative coordinate boundaries, stable IDs, multi-chunk indexing, deterministic queries, dirty bounds, serialization, non-mutating debug providers, and the zero-work disabled debug path.
+
+See [docs/spatial_model.md](docs/spatial_model.md) for the complete Phase 1 contracts, provider API, and revised roadmap. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for Phase 0 visual-reference attribution.

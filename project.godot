@@ -1,21 +1,27 @@
 ; Engine configuration file.
-; Foundation development project
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
 [application]
 
 config/name="Foundation"
-run/main_scene="res://demo/terrain_demo.tscn"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/foundation/plugin.cfg")
+run/main_scene="res://demo/spatial_model_demo.tscn"
+config/features=PackedStringArray("4.7")
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/foundation/plugin.cfg")
 
 [rendering]
 
