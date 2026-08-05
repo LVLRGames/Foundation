@@ -51,6 +51,19 @@ extends Resource
 @export var block_fill_overridden := Color(0.67, 0.28, 0.74, 0.18)
 @export var block_fill_invalid := Color(0.94, 0.33, 0.31, 0.20)
 @export var block_fill_selected := Color(1.0, 1.0, 1.0, 0.24)
+@export var parcel_generated := Color("90caf9")
+@export var parcel_locked := Color("ffee58")
+@export var parcel_overridden := Color("ce93d8")
+@export var parcel_corner := Color("4dd0e1")
+@export var parcel_remainder := Color("ffb74d")
+@export var parcel_invalid := Color("ef5350")
+@export var parcel_frontage_primary := Color("ffffff")
+@export var parcel_frontage_secondary := Color("26c6da")
+@export var parcel_fill_generated := Color(0.56, 0.79, 0.98, 0.13)
+@export var parcel_fill_corner := Color(0.30, 0.82, 0.88, 0.18)
+@export var parcel_fill_remainder := Color(1.0, 0.72, 0.30, 0.22)
+@export var parcel_fill_invalid := Color(0.94, 0.33, 0.31, 0.22)
+@export var parcel_fill_selected := Color(1.0, 1.0, 1.0, 0.28)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -155,6 +168,32 @@ func color_for(purpose: StringName) -> Color:
 			return block_fill_invalid
 		&"block_fill_selected":
 			return block_fill_selected
+		&"parcel_generated":
+			return parcel_generated
+		&"parcel_locked":
+			return parcel_locked
+		&"parcel_overridden":
+			return parcel_overridden
+		&"parcel_corner":
+			return parcel_corner
+		&"parcel_remainder":
+			return parcel_remainder
+		&"parcel_invalid":
+			return parcel_invalid
+		&"parcel_frontage_primary":
+			return parcel_frontage_primary
+		&"parcel_frontage_secondary":
+			return parcel_frontage_secondary
+		&"parcel_fill_generated":
+			return parcel_fill_generated
+		&"parcel_fill_corner":
+			return parcel_fill_corner
+		&"parcel_fill_remainder":
+			return parcel_fill_remainder
+		&"parcel_fill_invalid":
+			return parcel_fill_invalid
+		&"parcel_fill_selected":
+			return parcel_fill_selected
 		&"selected":
 			return selected
 		&"relationship":

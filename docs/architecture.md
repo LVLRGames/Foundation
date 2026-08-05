@@ -6,6 +6,8 @@ Phase 2 terrain-aware abstract road topology consumes these arrays without gradi
 
 Phase 3 block extraction consumes road centerlines without mutating terrain; see [block_extraction.md](block_extraction.md).
 
+Phase 4 parcel subdivision consumes canonical blocks and road provenance without mutating any earlier layer; see [parcel_subdivision.md](parcel_subdivision.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.
