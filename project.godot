@@ -6,7 +6,11 @@ config_version=5
 [application]
 
 config/name="Foundation"
-run/main_scene=""
+run/main_scene="res://demo/terrain_demo.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/foundation/plugin.cfg")
 
 [display]
 
