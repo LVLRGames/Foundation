@@ -9,6 +9,9 @@ const OVERRIDE_LAYER: StringName = &"override"
 const CITY_ANCHOR_LAYER: StringName = FoundationCityAnchor.LAYER_TYPE
 const ROAD_NODE_LAYER: StringName = FoundationRoadNode.LAYER_TYPE
 const ROAD_EDGE_LAYER: StringName = FoundationRoadEdge.LAYER_TYPE
+const ROAD_PATTERN_LAYER: StringName = FoundationRoadPatternArea.LAYER_TYPE
+const LOGICAL_ROAD_LAYER: StringName = FoundationLogicalRoad.LAYER_TYPE
+const ROAD_INTERSECTION_LAYER: StringName = FoundationIntersectionRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -33,6 +36,9 @@ func initialize_default_layers() -> void:
 	register_layer_type(CITY_ANCHOR_LAYER)
 	register_layer_type(ROAD_NODE_LAYER)
 	register_layer_type(ROAD_EDGE_LAYER)
+	register_layer_type(ROAD_PATTERN_LAYER)
+	register_layer_type(LOGICAL_ROAD_LAYER)
+	register_layer_type(ROAD_INTERSECTION_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -125,6 +131,39 @@ func get_road_edges() -> Array[FoundationRoadEdge]:
 	for record in layer.get_records():
 		if record is FoundationRoadEdge:
 			result.append(record as FoundationRoadEdge)
+	return result
+
+
+func get_road_pattern_areas() -> Array[FoundationRoadPatternArea]:
+	var result: Array[FoundationRoadPatternArea] = []
+	var layer := get_layer(ROAD_PATTERN_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationRoadPatternArea:
+			result.append(record as FoundationRoadPatternArea)
+	return result
+
+
+func get_logical_roads() -> Array[FoundationLogicalRoad]:
+	var result: Array[FoundationLogicalRoad] = []
+	var layer := get_layer(LOGICAL_ROAD_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationLogicalRoad:
+			result.append(record as FoundationLogicalRoad)
+	return result
+
+
+func get_road_intersections() -> Array[FoundationIntersectionRecord]:
+	var result: Array[FoundationIntersectionRecord] = []
+	var layer := get_layer(ROAD_INTERSECTION_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationIntersectionRecord:
+			result.append(record as FoundationIntersectionRecord)
 	return result
 
 

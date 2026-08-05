@@ -22,6 +22,26 @@ extends Resource
 @export var road_edge_generated := Color("80cbc4")
 @export var road_edge_locked := Color("ffca28")
 @export var road_edge_overridden := Color("ce93d8")
+@export var road_class_highway := Color("ef5350")
+@export var road_class_arterial := Color("ff8a65")
+@export var road_class_collector := Color("ffd54f")
+@export var road_class_local := Color("80cbc4")
+@export var road_class_alley := Color("b0bec5")
+@export var road_class_dirt := Color("a1887f")
+@export var road_pattern_grid := Color("42a5f5")
+@export var road_pattern_suburban := Color("ab47bc")
+@export var road_pattern_rural := Color("8bc34a")
+@export var road_candidate_accepted := Color(0.20, 0.85, 0.45, 0.45)
+@export var road_candidate_rejected := Color(0.90, 0.30, 0.30, 0.18)
+@export var road_intersection := Color("ffffff")
+@export var road_dead_end := Color("ffcc80")
+@export var road_cul_de_sac := Color("f48fb1")
+@export var road_grading_warning := Color("ff7043")
+@export var road_validation_warning := Color("ffca28")
+@export var road_validation_error := Color("f44336")
+@export var road_desired_elevation := Color("e1bee7")
+@export var road_cost_low := Color(0.25, 0.80, 0.38, 0.16)
+@export var road_cost_medium := Color(1.0, 0.76, 0.18, 0.20)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -64,6 +84,50 @@ func color_for(purpose: StringName) -> Color:
 			return road_edge_locked
 		&"road_edge_overridden":
 			return road_edge_overridden
+		&"road_class_highway":
+			return road_class_highway
+		&"road_class_arterial":
+			return road_class_arterial
+		&"road_class_collector":
+			return road_class_collector
+		&"road_class_local":
+			return road_class_local
+		&"road_class_alley":
+			return road_class_alley
+		&"road_class_dirt":
+			return road_class_dirt
+		&"road_pattern_grid":
+			return road_pattern_grid
+		&"road_pattern_suburban":
+			return road_pattern_suburban
+		&"road_pattern_rural":
+			return road_pattern_rural
+		&"road_pattern_other":
+			return relationship
+		&"road_candidate_accepted":
+			return road_candidate_accepted
+		&"road_candidate_rejected":
+			return road_candidate_rejected
+		&"road_intersection":
+			return road_intersection
+		&"road_dead_end":
+			return road_dead_end
+		&"road_cul_de_sac":
+			return road_cul_de_sac
+		&"road_grading_warning", &"road_cost_high":
+			return road_grading_warning
+		&"road_cost_low":
+			return road_cost_low
+		&"road_cost_medium":
+			return road_cost_medium
+		&"road_validation_warning":
+			return road_validation_warning
+		&"road_validation_error":
+			return road_validation_error
+		&"road_desired_elevation":
+			return road_desired_elevation
+		&"road_anchor_priority":
+			return anchor_generated
 		&"selected":
 			return selected
 		&"relationship":

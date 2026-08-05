@@ -19,6 +19,9 @@ func _run() -> void:
 	_test_preserved_record_reindex()
 	_test_terrain_influence()
 	_test_debug_contract(world)
+	_test_issue_9_pattern_graph_contract()
+	_test_issue_9_grading_and_validation()
+	_test_issue_9_demo_contract()
 	_test_scope_exclusions(world)
 
 	if _failures.is_empty():
@@ -383,6 +386,296 @@ func _test_debug_contract(world: FoundationWorldData) -> void:
 	world_node.free()
 
 
+func _test_issue_9_pattern_graph_contract() -> void:
+	var positions: Array[Vector3] = [
+		Vector3(-180.0, 0.0, -180.0),
+		Vector3(180.0, 0.0, -180.0),
+		Vector3(0.0, 0.0, 180.0),
+		Vector3(180.0, 0.0, 180.0),
+	]
+	var first_world := _make_world(9001, positions)
+	var second_world := _make_world(9001, positions)
+	var changed_world := _make_world(9002, positions)
+	_add_issue_9_patterns(first_world, false)
+	_add_issue_9_patterns(second_world, true)
+	_add_issue_9_patterns(changed_world, false)
+	var first_terrain := _make_flat_terrain(9001, Vector2i(128, 128))
+	var second_terrain := _make_flat_terrain(9001, Vector2i(128, 128))
+	var changed_terrain := _make_flat_terrain(9002, Vector2i(128, 128))
+	var origin := Vector2i(-64, -64)
+	var first_result := FoundationRoadTopologyGenerator.generate(first_world, first_terrain, origin)
+	var second_result := FoundationRoadTopologyGenerator.generate(second_world, second_terrain, origin)
+	var changed_result := FoundationRoadTopologyGenerator.generate(changed_world, changed_terrain, origin)
+	_check(
+		first_result.success and second_result.success and changed_result.success,
+		"Issue #9 road graph generates for grid, suburban, and rural pattern inputs"
+	)
+	_check(
+		_road_graph_snapshot(first_world) == _road_graph_snapshot(second_world),
+		"dictionary and registration order do not perturb deterministic Phase 2 graph identity"
+	)
+	_check(
+		_local_topology_snapshot(first_world) != _local_topology_snapshot(changed_world),
+		"different world seeds change eligible local pattern topology"
+	)
+	var issue_codes := _validation_codes(first_result.validation_issues)
+	var changed_issue_codes := _validation_codes(changed_result.validation_issues)
+	_check(
+		&"unreachable_mandatory_anchor" not in issue_codes
+		and &"unreachable_mandatory_anchor" not in changed_issue_codes,
+		"different seeds preserve mandatory anchor reachability"
+	)
+	_check(
+		first_result.mandatory_anchor_count >= 3,
+		"major centers, map exits, and external destinations carry explicit mandatory intent"
+	)
+	var pattern_families: Dictionary = {}
+	var classes: Dictionary = {}
+	var has_complete_edge_contract := true
+	for edge in first_world.get_road_edges():
+		classes[edge.road_class] = true
+		if edge.metadata.has("pattern_family"):
+			pattern_families[StringName(edge.metadata["pattern_family"])] = true
+		has_complete_edge_contract = has_complete_edge_contract and (
+			not String(edge.physical_profile_key).is_empty()
+			and not String(edge.logical_road_id).is_empty()
+			and not String(edge.directionality).is_empty()
+			and not String(edge.access_control_policy).is_empty()
+			and not edge.allowed_movement_modes.is_empty()
+			and not edge.desired_elevation_samples.is_empty()
+			and edge.grading_requirements.has("maximum_cut_depth")
+		)
+	_check(
+		pattern_families.has(FoundationRoadPatternArea.DOWNTOWN_GRID)
+		and pattern_families.has(FoundationRoadPatternArea.SUBURBAN_LOOPS)
+		and pattern_families.has(FoundationRoadPatternArea.RURAL_TERRAIN_FOLLOWING),
+		"three district-style pattern families produce visibly distinct abstract topology"
+	)
+	_check(
+		classes.has(FoundationRoadEdge.CLASS_LOCAL)
+		and classes.has(FoundationRoadEdge.CLASS_COLLECTOR)
+		and classes.has(FoundationRoadEdge.CLASS_DIRT),
+		"pattern inputs generate local, collector, and terrain-following dirt-road hierarchy"
+	)
+	var functional_classes: Array[StringName] = [
+		FoundationRoadEdge.CLASS_HIGHWAY,
+		FoundationRoadEdge.CLASS_ARTERIAL,
+		FoundationRoadEdge.CLASS_COLLECTOR,
+		FoundationRoadEdge.CLASS_LOCAL,
+		FoundationRoadEdge.CLASS_ALLEY,
+		FoundationRoadEdge.CLASS_DIRT,
+	]
+	var unique_classes: Dictionary = {}
+	for road_class in functional_classes:
+		unique_classes[road_class] = true
+	_check(unique_classes.size() == 6, "all six Phase 2 functional road classes have stable distinct identities")
+	_check(has_complete_edge_contract, "every generated edge preserves hierarchy, physical-form, access, movement, logical, and grading seams")
+	_check(
+		not first_world.get_logical_roads().is_empty()
+		and first_result.generated_logical_road_count == first_world.get_logical_roads().size(),
+		"deterministic logical-road records continue identity across graph edges"
+	)
+	_check(
+		not first_world.get_road_intersections().is_empty()
+		and first_result.generated_intersection_count == first_world.get_road_intersections().size(),
+		"abstract intersection records expose degree and topology without physical geometry"
+	)
+	var extended_spatial_records: Array[FoundationSpatialRecord] = []
+	extended_spatial_records.append_array(first_world.get_road_pattern_areas())
+	extended_spatial_records.append_array(first_world.get_logical_roads())
+	extended_spatial_records.append_array(first_world.get_road_intersections())
+	var extended_indexed := true
+	for record in extended_spatial_records:
+		extended_indexed = extended_indexed and not record.owning_chunks.is_empty()
+		for chunk in record.owning_chunks:
+			extended_indexed = extended_indexed and record in first_world.get_records_in_chunk(chunk, record.layer_type)
+	_check(extended_indexed, "patterns, logical roads, and intersections register in every owning spatial bucket")
+	_check(
+		FoundationRoadGenerationProfile.SEED_STREAMS == [
+			&"road_anchor_candidates", &"road_major_connections", &"road_collectors",
+			&"road_local_growth", &"road_loops", &"road_dead_ends", &"road_logical_identity",
+		],
+		"Phase 2 uses named independent deterministic seed streams"
+	)
+	_check(
+		&"self_edge" not in issue_codes and &"duplicate_edge" not in issue_codes,
+		"generated graph contains no self-edges or duplicate node-pair edges"
+	)
+	var restored := FoundationWorldData.from_dict(first_world.to_dict())
+	_check(
+		_road_graph_snapshot(restored) == _road_graph_snapshot(first_world),
+		"extended road graph, patterns, logical roads, intersections, grading, and identity serialize round-trip"
+	)
+	_check(
+		restored.get_road_pattern_areas()[0] is FoundationRoadPatternArea
+		and restored.get_logical_roads()[0] is FoundationLogicalRoad
+		and restored.get_road_intersections()[0] is FoundationIntersectionRecord,
+		"extended Phase 2 serialization restores typed Node-free records"
+	)
+	var authored_pattern := first_world.get_road_pattern_areas()[0]
+	var authored_logical := first_world.get_logical_roads()[0]
+	var authored_intersection := first_world.get_road_intersections()[0]
+	authored_pattern.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	authored_pattern.metadata["authored_marker"] = "pattern"
+	authored_logical.authorship_state = FoundationSpatialRecord.AuthorshipState.LOCKED
+	authored_logical.metadata["authored_marker"] = "logical"
+	authored_intersection.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	authored_intersection.metadata["authored_marker"] = "intersection"
+	var authored_rerun := FoundationRoadTopologyGenerator.generate(first_world, first_terrain, origin)
+	_check(
+		authored_rerun.success
+		and first_world.get_record(authored_pattern.stable_id) == authored_pattern
+		and first_world.get_record(authored_logical.stable_id) == authored_logical
+		and first_world.get_record(authored_intersection.stable_id) == authored_intersection,
+		"pattern, logical-road, and intersection authored objects survive regeneration"
+	)
+	_check(
+		authored_pattern.metadata.get("authored_marker") == "pattern"
+		and authored_logical.metadata.get("authored_marker") == "logical"
+		and authored_intersection.metadata.get("authored_marker") == "intersection",
+		"extended Phase 2 authored data remains exact during regeneration"
+	)
+	var authored_restored := FoundationWorldData.from_dict(first_world.to_dict())
+	_check(
+		authored_restored.get_record(authored_pattern.stable_id).authorship_state == FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+		and authored_restored.get_record(authored_logical.stable_id).authorship_state == FoundationSpatialRecord.AuthorshipState.LOCKED
+		and authored_restored.get_record(authored_intersection.stable_id).authorship_state == FoundationSpatialRecord.AuthorshipState.OVERRIDDEN,
+		"extended generated/locked/overridden states serialize round-trip"
+	)
+	var registry := FoundationDebugLayerRegistry.new()
+	registry.register_phase_1_defaults()
+	for provider_id in registry.get_provider_ids():
+		registry.set_layer_enabled(provider_id, provider_id in [&"road_topology", &"road_costs", &"road_candidates", &"road_validation"])
+	var before_debug := _road_graph_snapshot(first_world)
+	var builder := registry.build(first_world)
+	_check(
+		builder.line_purposes.has(&"road_class_local")
+		and builder.line_purposes.has(&"road_pattern_grid")
+		and builder.line_purposes.has(&"road_candidate_accepted")
+		and builder.line_purposes.has(&"road_intersection")
+		and not builder.triangle_vertices.is_empty(),
+		"batched debug exposes hierarchy, patterns, candidates, intersections, and routing-cost heatmap"
+	)
+	var has_logical_label := false
+	for label: Dictionary in builder.labels:
+		has_logical_label = has_logical_label or "logical" in String(label.get("text", ""))
+	_check(has_logical_label, "debug labels expose logical-road continuity and topology metadata")
+	_check(_road_graph_snapshot(first_world) == before_debug, "rich road debug providers never mutate road or world data")
+	var planning_invocations: Dictionary = {}
+	for provider_id in registry.get_provider_ids():
+		planning_invocations[provider_id] = registry.get_provider(provider_id).invocation_count
+		registry.set_layer_enabled(provider_id, false)
+	var fully_disabled := registry.build(first_world)
+	var no_disabled_work := fully_disabled.get_primitive_count() == 0
+	for provider_id in planning_invocations:
+		no_disabled_work = no_disabled_work and (
+			registry.get_provider(provider_id).invocation_count == int(planning_invocations[provider_id])
+		)
+	_check(no_disabled_work, "disabled topology, cost, candidate, and validation providers perform zero work")
+
+
+func _test_issue_9_grading_and_validation() -> void:
+	var world := _make_world(
+		404,
+		[Vector3(-52.0, 0.0, 0.0), Vector3(52.0, 0.0, 0.0)],
+		Rect2(-64.0, -40.0, 128.0, 80.0)
+	)
+	var terrain := _make_flat_terrain(404, Vector2i(32, 20))
+	for vertex_x in range(14, 19):
+		for vertex_y in range(0, 21):
+			terrain.set_vertex_height(
+				Vector2i(vertex_x, vertex_y), 32.0,
+				FoundationTerrainData.ModificationSource.MANUAL, false
+			)
+	var terrain_before := _terrain_snapshot(terrain)
+	var profile := FoundationRoadGenerationProfile.new()
+	profile.max_expanded_cells = 1
+	var result := FoundationRoadTopologyGenerator.generate(world, terrain, Vector2i(-16, -10), profile)
+	var edge := world.get_road_edges()[0]
+	_check(result.success and edge.used_fallback_route, "difficult terrain retains mandatory connectivity through a reported fallback route")
+	_check(
+		float(edge.grading_requirements.get("maximum_cut_depth", 0.0)) > 0.0
+		and bool(edge.grading_requirements.get("retaining_wall_candidate", false)),
+		"difficult terrain records desired elevation, cut depth, and retaining-wall requirements"
+	)
+	_check(_terrain_snapshot(terrain) == terrain_before, "grading reports remain planning data and never deform terrain")
+
+	var patterned := _make_world(
+		405,
+		[Vector3(-180.0, 0.0, -180.0), Vector3(180.0, 0.0, -180.0), Vector3(0.0, 0.0, 180.0)]
+	)
+	_add_issue_9_patterns(patterned, false)
+	FoundationRoadTopologyGenerator.generate(patterned, _make_flat_terrain(405, Vector2i(128, 128)), Vector2i(-64, -64))
+	var junction: FoundationRoadNode
+	for intersection in patterned.get_road_intersections():
+		var candidate := patterned.get_record(intersection.node_id) as FoundationRoadNode
+		var has_local := false
+		var collector_edge: FoundationRoadEdge
+		for edge_id in candidate.incident_edge_ids:
+			var candidate_edge := patterned.get_record(edge_id) as FoundationRoadEdge
+			has_local = has_local or candidate_edge.road_class == FoundationRoadEdge.CLASS_LOCAL
+			if candidate_edge.road_class == FoundationRoadEdge.CLASS_COLLECTOR:
+				collector_edge = candidate_edge
+		if has_local and collector_edge != null:
+			junction = candidate
+			collector_edge.road_class = FoundationRoadEdge.CLASS_HIGHWAY
+			break
+	var hierarchy_issues := FoundationRoadTopologyValidator.validate(patterned)
+	_check(
+		junction != null and &"class_incompatible_connection" in _validation_codes(hierarchy_issues),
+		"topology validator rejects direct highway-to-local access"
+	)
+	_check(
+		&"excessive_intersection_proximity" not in _validation_codes(result.validation_issues),
+		"generator enforces configured minimum spacing for its abstract intersections"
+	)
+
+
+func _test_issue_9_demo_contract() -> void:
+	var scene := load("res://demo/spatial_model_demo.tscn") as PackedScene
+	var demo := scene.instantiate()
+	root.add_child(demo)
+	var demo_world := demo.get_node("FoundationWorld") as FoundationWorld
+	var data := demo_world.world_data
+	var classes: Dictionary = {}
+	for edge in data.get_road_edges():
+		classes[edge.road_class] = true
+	_check(data.get_anchors().size() >= 5, "Phase 2 demo spans several meaningful city-anchor categories")
+	_check(data.get_road_pattern_areas().size() == 3, "Phase 2 demo enables downtown, suburban, and rural pattern areas")
+	_check(
+		classes.has(FoundationRoadEdge.CLASS_ARTERIAL)
+		and classes.has(FoundationRoadEdge.CLASS_COLLECTOR)
+		and classes.has(FoundationRoadEdge.CLASS_LOCAL)
+		and classes.has(FoundationRoadEdge.CLASS_DIRT),
+		"Phase 2 demo visibly includes major roads, collectors, local roads, and rural dirt roads"
+	)
+	_check(
+		not data.get_logical_roads().is_empty() and not data.get_road_intersections().is_empty(),
+		"Phase 2 demo exposes logical-road labels and abstract intersection markers"
+	)
+	_check(
+		demo.get_node_or_null("UI/Margin/Panel/Content/GenerationControls/SeedSpin") != null
+		and demo.get_node_or_null("UI/Margin/Panel/Content/StageControls/RegenerateButton") != null
+		and demo.get_node_or_null("UI/Margin/Panel/Content/StageControls/ClearRoadButton") != null,
+		"Phase 2 demo provides seed/profile, selected-stage regeneration, and clear controls"
+	)
+	var before := _road_graph_snapshot(data)
+	demo.call("_regenerate_selected_stage")
+	_check(_road_graph_snapshot(data) == before, "same-seed full demo regeneration reproduces identical graph records")
+	var stage_options := demo.get_node("UI/Margin/Panel/Content/StageControls/StageOptions") as OptionButton
+	stage_options.select(1)
+	demo.call("_regenerate_selected_stage")
+	_check(_road_graph_snapshot(data) == before, "selected derived stage reproduces logical roads and intersections without rerouting")
+	demo.call("_clear_road_data")
+	_check(
+		data.get_road_nodes().is_empty() and data.get_road_edges().is_empty()
+		and data.get_logical_roads().is_empty() and data.get_road_intersections().is_empty()
+		and data.get_road_pattern_areas().size() == 3,
+		"clear control removes generated road outputs while preserving pattern inputs"
+	)
+	demo.free()
+
+
 func _test_scope_exclusions(world: FoundationWorldData) -> void:
 	var node := world.get_road_nodes()[0]
 	var edge := world.get_road_edges()[0]
@@ -396,9 +689,20 @@ func _test_scope_exclusions(world: FoundationWorldData) -> void:
 		and not ClassDB.is_parent_class(edge.get_class(), "Node"),
 		"road edges remain abstract data rather than scene or mesh nodes"
 	)
+	var pattern := FoundationRoadPatternArea.new()
+	var logical := FoundationLogicalRoad.new()
+	var intersection := FoundationIntersectionRecord.new()
+	var elevation_sample := FoundationRoadElevationSample.new()
+	var validation_issue := FoundationRoadValidationIssue.new()
+	var extended_contracts: Array[RefCounted] = [pattern, logical, intersection, elevation_sample, validation_issue]
+	var all_node_free := true
+	for record in extended_contracts:
+		all_node_free = all_node_free and not ClassDB.is_parent_class(record.get_class(), "Node")
+	_check(all_node_free, "pattern, logical-road, intersection, grading, and validation contracts remain Node-free data")
 	var forbidden_methods := [
-		&"build_mesh", &"create_lane", &"add_lane", &"create_intersection",
+		&"build_road_mesh", &"create_lane", &"add_lane", &"create_physical_intersection",
 		&"spawn_traffic", &"grade_terrain", &"find_gameplay_path", &"create_navigation_mesh",
+		&"create_block", &"subdivide_parcels", &"generate_addresses",
 	]
 	var has_out_of_scope_api := false
 	for method_name in forbidden_methods:
@@ -408,7 +712,7 @@ func _test_scope_exclusions(world: FoundationWorldData) -> void:
 			or edge.has_method(method_name)
 			or world.has_method(method_name)
 		)
-	_check(not has_out_of_scope_api, "Phase 2 exposes no mesh, lane, navigation, traffic, intersection, or grading API")
+	_check(not has_out_of_scope_api, "Phase 2 exposes no road mesh, lane, navigation, traffic, physical intersection, grading, block, parcel, or address API")
 
 
 func _make_world(
@@ -449,6 +753,37 @@ func _make_flat_terrain(seed: int, grid_cells: Vector2i) -> FoundationTerrainDat
 	var terrain := FoundationTerrainData.new(seed, grid_cells, 4.0, 1.0, Vector2i(32, 32), 1, &"phase-2-tests")
 	terrain.clear_dirty_chunks()
 	return terrain
+
+
+func _add_issue_9_patterns(world: FoundationWorldData, reverse_order: bool) -> void:
+	var downtown := FoundationRoadPatternArea.create(
+		world.metadata, "downtown-test", Rect2(-140.0, -130.0, 100.0, 100.0),
+		FoundationRoadPatternArea.DOWNTOWN_GRID
+	)
+	downtown.preferred_orientation_degrees = 0.0
+	downtown.preferred_spacing = 28.0
+	downtown.grid_strength = 1.0
+	var suburban := FoundationRoadPatternArea.create(
+		world.metadata, "suburban-test", Rect2(20.0, -130.0, 120.0, 100.0),
+		FoundationRoadPatternArea.SUBURBAN_LOOPS
+	)
+	suburban.preferred_orientation_degrees = 18.0
+	suburban.preferred_spacing = 24.0
+	suburban.curvature_allowance = 1.0
+	suburban.loop_preference = 1.0
+	var rural := FoundationRoadPatternArea.create(
+		world.metadata, "rural-test", Rect2(-80.0, 50.0, 160.0, 90.0),
+		FoundationRoadPatternArea.RURAL_TERRAIN_FOLLOWING
+	)
+	rural.preferred_orientation_degrees = 12.0
+	rural.preferred_spacing = 32.0
+	rural.terrain_following_strength = 1.0
+	var patterns: Array[FoundationRoadPatternArea] = [downtown, suburban, rural]
+	if reverse_order:
+		patterns.reverse()
+	for pattern in patterns:
+		pattern.source_pass = &"phase_2_test_pattern"
+		world.register_record(pattern)
 
 
 func _is_connected(world: FoundationWorldData) -> bool:
@@ -495,6 +830,41 @@ func _topology_snapshot(world: FoundationWorldData) -> String:
 	for edge in world.get_road_edges():
 		records.append(edge.to_dict())
 	return JSON.stringify(records)
+
+
+func _road_graph_snapshot(world: FoundationWorldData) -> String:
+	var records: Array[Dictionary] = []
+	for pattern in world.get_road_pattern_areas():
+		records.append(pattern.to_dict())
+	for node in world.get_road_nodes():
+		records.append(node.to_dict())
+	for edge in world.get_road_edges():
+		records.append(edge.to_dict())
+	for logical in world.get_logical_roads():
+		records.append(logical.to_dict())
+	for intersection in world.get_road_intersections():
+		records.append(intersection.to_dict())
+	return JSON.stringify(records)
+
+
+func _local_topology_snapshot(world: FoundationWorldData) -> String:
+	var records: Array[Dictionary] = []
+	for edge in world.get_road_edges():
+		if edge.generation_source in [&"pattern_growth", &"pattern_connection"]:
+			records.append({
+				"class": String(edge.road_class),
+				"points": _points_snapshot(edge.route_points),
+			})
+	return JSON.stringify(records)
+
+
+func _validation_codes(issues: Array[FoundationRoadValidationIssue]) -> Array[StringName]:
+	var codes: Array[StringName] = []
+	for issue in issues:
+		if issue.code not in codes:
+			codes.append(issue.code)
+	codes.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+	return codes
 
 
 func _anchor_snapshot(world: FoundationWorldData) -> String:
