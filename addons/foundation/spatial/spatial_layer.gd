@@ -139,6 +139,12 @@ static func from_dict(
 				record = FoundationRoadNode.from_dict(record_data)
 			FoundationRoadEdge.RECORD_KIND:
 				record = FoundationRoadEdge.from_dict(record_data)
+			FoundationRoadPatternArea.RECORD_KIND:
+				record = FoundationRoadPatternArea.from_dict(record_data)
+			FoundationLogicalRoad.RECORD_KIND:
+				record = FoundationLogicalRoad.from_dict(record_data)
+			FoundationIntersectionRecord.RECORD_KIND:
+				record = FoundationIntersectionRecord.from_dict(record_data)
 			FoundationBlockRecord.RECORD_KIND:
 				record = FoundationBlockRecord.from_dict(record_data)
 			_:

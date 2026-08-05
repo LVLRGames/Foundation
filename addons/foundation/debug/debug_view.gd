@@ -14,6 +14,9 @@ extends Node3D
 @export var show_records := true
 @export var show_anchors := true
 @export var show_road_topology := true
+@export var show_road_costs := false
+@export var show_road_candidates := false
+@export var show_road_validation := true
 @export var show_blocks := true
 @export var show_relationships := true
 @export var selected_record_id: StringName = &""
@@ -88,6 +91,9 @@ func _sync_layer_visibility() -> void:
 	layer_registry.set_layer_enabled(&"records", show_records)
 	layer_registry.set_layer_enabled(&"anchors", show_anchors)
 	layer_registry.set_layer_enabled(&"road_topology", show_road_topology)
+	layer_registry.set_layer_enabled(&"road_costs", show_road_costs)
+	layer_registry.set_layer_enabled(&"road_candidates", show_road_candidates)
+	layer_registry.set_layer_enabled(&"road_validation", show_road_validation)
 	layer_registry.set_layer_enabled(&"blocks", show_blocks)
 	layer_registry.set_layer_enabled(&"relationships", show_relationships)
 
