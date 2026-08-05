@@ -13,6 +13,7 @@ const ROAD_PATTERN_LAYER: StringName = FoundationRoadPatternArea.LAYER_TYPE
 const LOGICAL_ROAD_LAYER: StringName = FoundationLogicalRoad.LAYER_TYPE
 const ROAD_INTERSECTION_LAYER: StringName = FoundationIntersectionRecord.LAYER_TYPE
 const BLOCK_LAYER: StringName = FoundationBlockRecord.LAYER_TYPE
+const PARCEL_LAYER: StringName = FoundationParcelRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -41,6 +42,7 @@ func initialize_default_layers() -> void:
 	register_layer_type(LOGICAL_ROAD_LAYER)
 	register_layer_type(ROAD_INTERSECTION_LAYER)
 	register_layer_type(BLOCK_LAYER)
+	register_layer_type(PARCEL_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -177,6 +179,17 @@ func get_blocks() -> Array[FoundationBlockRecord]:
 	for record in layer.get_records():
 		if record is FoundationBlockRecord:
 			result.append(record as FoundationBlockRecord)
+	return result
+
+
+func get_parcels() -> Array[FoundationParcelRecord]:
+	var result: Array[FoundationParcelRecord] = []
+	var layer := get_layer(PARCEL_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationParcelRecord:
+			result.append(record as FoundationParcelRecord)
 	return result
 
 

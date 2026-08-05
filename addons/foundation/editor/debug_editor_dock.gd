@@ -2,7 +2,7 @@
 class_name FoundationDebugEditorDock
 extends ScrollContainer
 
-## Editor controls affect only disposable debug presentation, never world generation.
+## Editor controls expose disposable debug presentation and explicit Phase 4 parcel actions.
 
 var _editor_interface: EditorInterface
 var _content: VBoxContainer
@@ -70,6 +70,7 @@ func _build_interface() -> void:
 		[&"road_candidates", "Accepted and rejected anchor candidates"],
 		[&"road_validation", "Grading and topology validation warnings"],
 		[&"blocks", "Block outlines, fills, metrics, and diagnostics"],
+		[&"parcels", "Parcels, frontage, access state, and validation"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -98,6 +99,15 @@ func _build_interface() -> void:
 	rebuild_button.text = "Rebuild Debug Display"
 	rebuild_button.pressed.connect(_rebuild_pressed)
 	_content.add_child(rebuild_button)
+
+	var generate_parcels := Button.new()
+	generate_parcels.text = "Generate / Regenerate Parcels"
+	generate_parcels.pressed.connect(_generate_parcels_pressed)
+	_content.add_child(generate_parcels)
+	var clear_parcels := Button.new()
+	clear_parcels.text = "Clear Generated Parcels"
+	clear_parcels.pressed.connect(_clear_parcels_pressed)
+	_content.add_child(clear_parcels)
 
 
 func _connect_selection() -> void:
@@ -141,6 +151,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"road_candidates"].button_pressed = _view.show_road_candidates
 	_layer_toggles[&"road_validation"].button_pressed = _view.show_road_validation
 	_layer_toggles[&"blocks"].button_pressed = _view.show_blocks
+	_layer_toggles[&"parcels"].button_pressed = _view.show_parcels
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -190,6 +201,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"road_candidates": _view.show_road_candidates = value
 		&"road_validation": _view.show_road_validation = value
 		&"blocks": _view.show_blocks = value
+		&"parcels": _view.show_parcels = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -280,6 +292,14 @@ func _debug_selection_changed(index: int) -> void:
 					block.owning_chunks,
 					block.owning_regions,
 				]
+			elif record is FoundationParcelRecord:
+				var parcel := record as FoundationParcelRecord
+				_selection_details.text = "%s\nParent: %s\nKind: %s\nArea: %.2f\nFrontage: %.2f\nDepth: %.2f\nAccess: %s\nBuildable: %s\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					parcel.stable_id, parcel.parent_id, parcel.parcel_kind, parcel.area,
+					parcel.approximate_frontage_width, parcel.approximate_depth,
+					parcel.access_state, parcel.buildable, parcel.validation_state,
+					parcel.owning_chunks, parcel.owning_regions,
+				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
 					record.stable_id, record.world_bounds, record.parent_id, record.layer_type,
@@ -293,3 +313,36 @@ func _rebuild_pressed() -> void:
 		return
 	var primitive_count := _view.rebuild()
 	_status.text = "Rebuilt %d disposable debug primitive(s)." % primitive_count
+
+
+func _generate_parcels_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var result := FoundationParcelSubdivider.generate(world_node.world_data)
+	_status.text = "Parcel generation %s: %d generated, %d preserved." % [
+		"completed" if result.success else "failed",
+		result.generated_parcel_count,
+		result.preserved_parcel_count,
+	]
+	_populate_selection_options()
+
+
+func _clear_parcels_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var removed := FoundationParcelSubdivider.clear_generated(world_node.world_data)
+	_status.text = "Cleared %d generated parcel record(s); authored parcels were preserved." % removed
+	_populate_selection_options()
+
+
+func _selected_world() -> FoundationWorld:
+	if _view == null:
+		return null
+	var world_node := _view.get_node_or_null(_view.world_path) as FoundationWorld
+	if world_node != null and world_node.world_data == null:
+		world_node.initialize_world()
+	return world_node
