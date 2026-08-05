@@ -12,6 +12,10 @@ extends Resource
 @export var record_generated := Color("81c784")
 @export var record_locked := Color("ffb74d")
 @export var record_overridden := Color("f06292")
+@export var anchor_generated := Color("26c6da")
+@export var anchor_locked := Color("ffee58")
+@export var anchor_overridden := Color("ab47bc")
+@export var anchor_influence := Color(0.15, 0.78, 0.85, 0.55)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -34,6 +38,14 @@ func color_for(purpose: StringName) -> Color:
 			return record_locked
 		&"record_overridden":
 			return record_overridden
+		&"anchor_generated":
+			return anchor_generated
+		&"anchor_locked":
+			return anchor_locked
+		&"anchor_overridden":
+			return anchor_overridden
+		&"anchor_influence":
+			return anchor_influence
 		&"selected":
 			return selected
 		&"relationship":

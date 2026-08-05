@@ -6,6 +6,7 @@ extends RefCounted
 const FORMAT_VERSION := 1
 const TERRAIN_LAYER: StringName = &"terrain"
 const OVERRIDE_LAYER: StringName = &"override"
+const CITY_ANCHOR_LAYER: StringName = FoundationCityAnchor.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -27,6 +28,7 @@ func _init(
 func initialize_default_layers() -> void:
 	register_layer_type(TERRAIN_LAYER)
 	register_layer_type(OVERRIDE_LAYER)
+	register_layer_type(CITY_ANCHOR_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -89,6 +91,17 @@ func get_record(stable_id: StringName) -> FoundationSpatialRecord:
 	return spatial_index.get_record(stable_id)
 
 
+func get_anchors() -> Array[FoundationCityAnchor]:
+	var result: Array[FoundationCityAnchor] = []
+	var layer := get_layer(CITY_ANCHOR_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationCityAnchor:
+			result.append(record as FoundationCityAnchor)
+	return result
+
+
 func query_bounds(bounds: Rect2, layer_types: Array[StringName] = []) -> Array[FoundationSpatialRecord]:
 	return spatial_index.query_bounds(bounds, layer_types)
 
@@ -132,6 +145,13 @@ func get_records_in_chunk(
 	layer_type: StringName = &""
 ) -> Array[FoundationSpatialRecord]:
 	return spatial_index.get_records_in_chunk(chunk_coordinate, layer_type)
+
+
+func get_records_in_region(
+	region_coordinate: Vector2i,
+	layer_type: StringName = &""
+) -> Array[FoundationSpatialRecord]:
+	return spatial_index.get_records_in_region(region_coordinate, layer_type)
 
 
 func get_chunks_intersecting(bounds: Rect2) -> Array[FoundationChunkData]:

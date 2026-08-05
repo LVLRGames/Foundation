@@ -14,8 +14,10 @@ FoundationWorld
     ├── FoundationSpatialIndex
     ├── FoundationLayerRegistry
     │   ├── terrain
+    │   ├── city_anchors
     │   ├── override
     │   └── future spatial layers
+    ├── FoundationCityAnchor[]
     ├── FoundationRegionData[]
     └── FoundationChunkData[]
 ```
@@ -45,15 +47,16 @@ Phase 1 deliberately contains no procedural road topology.
 | --- | --- |
 | `FoundationWorldMetadata` | Seed/version context, content-pack version, world bounds, and generation metadata |
 | `FoundationCoordinateSystem` | Every world, terrain cell/vertex, chunk, region, local-coordinate, bounds, and snapping conversion |
-| `FoundationSpatialRecord` | Stable identity, XZ world bounds, ownership chunks, parent/children, tags, authorship state, and source pass |
+| `FoundationSpatialRecord` | Stable identity, XZ world bounds, owning chunks/regions, parent/children, tags, authorship state, and source pass |
+| `FoundationCityAnchor` | Extensible city-planning intent with position, optional influence, priority, authorship, metadata, and no connectivity |
 | `FoundationSpatialLayer` | Register/unregister/query records, layer serialization, and layer/chunk dirty state |
-| `FoundationSpatialIndex` | Direct stable-ID lookup and deterministic chunk-bucket bounds queries |
+| `FoundationSpatialIndex` | Direct stable-ID lookup and deterministic chunk/region-bucket queries |
 | `FoundationRegionData` | Large logical scheduling/manifest partition above chunks |
 | `FoundationChunkData` | Abstract chunk bounds, layer references, dirty state, generation state, and future runtime-state seam |
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The `terrain` and `override` layers are registered by default. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The `terrain`, `city_anchors`, and `override` layers are registered by default. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
 
 ## Coordinate conventions
 
@@ -93,6 +96,24 @@ It never reads runtime instance IDs, node order, dictionary order, or thread com
 
 Callers must canonicalize complex semantic input before supplying the key. Passing an unordered Dictionary as identity is intentionally unsupported.
 
+## Abstract city-anchor contract
+
+`FoundationCityAnchor` is a renderer-independent `FoundationSpatialRecord` subtype that records planning intent for later city generators. It contains:
+
+- a deterministic stable ID
+- an open `StringName` category
+- an exact `Vector3` world position
+- an optional circular influence radius or explicit XZ influence bounds
+- a non-negative priority/importance weight
+- inherited tags, metadata, parent identity, source pass/version, and generated/locked/overridden state
+- deterministic owning chunks and regions computed by the shared spatial index
+
+An explicit influence rectangle takes precedence over the radius for indexing. Radius-only anchors derive a square XZ index envelope around their position. A point anchor has zero-size bounds and belongs to the single floor-resolved chunk containing its position. Call `refresh_world_bounds()` after directly editing position/influence fields, or use the provided setter methods before re-registering the anchor.
+
+Built-in category constants cover `city_center`, `civic_center`, `highway_entrance`, `map_exit`, `industrial_center`, `commercial_center`, `waterfront_crossing`, `bridge_candidate`, `transit_node`, `landmark`, `public_square`, `district_seed`, and `external_destination`. These are vocabulary conveniences, not a closed enum; content packs may use any non-empty `StringName`.
+
+Categories such as highway entrance and bridge candidate are only unconnected intent labels. Phase 1 anchors contain no edges, neighbors, routing costs, pathfinding methods, or road-generation behavior.
+
 ## Generated, locked, and overridden semantics
 
 Every record stores one `AuthorshipState`:
@@ -105,7 +126,7 @@ Every record stores one `AuthorshipState`:
 
 ## Chunk-bucket spatial index
 
-Registration computes all chunks intersected by a record's half-open XZ bounds. The index stores the stable ID in each bucket and keeps one direct ID-to-record map. A bounds query visits only intersected buckets, deduplicates IDs, filters exact bounds/layers, then sorts once by stable ID at the public boundary.
+Registration computes all chunks intersected by a record's half-open XZ bounds, then derives unique owning regions from those chunks. The index stores the stable ID in each chunk and region bucket and keeps one direct ID-to-record map. A bounds query visits only intersected chunk buckets, deduplicates IDs, filters exact bounds/layers, then sorts once by stable ID at the public boundary. Chunk and region queries also return stable-ID order.
 
 Internal dictionaries are not treated as ordered. No query scans all world records unless the caller explicitly requests `get_all_records()` for tooling/debugging.
 
@@ -119,6 +140,7 @@ Internal dictionaries are not treated as ordered. No query scans all world recor
 - coordinate settings
 - sorted layer registrations and records
 - stable record IDs and authorship state
+- typed city-anchor category, position, optional influence, priority, tags, metadata, and ownership
 - regions and chunks
 - layer references and dirty state
 
@@ -153,7 +175,7 @@ The centralized `FoundationDebugStyle` resource maps semantic purposes to colors
 
 Global disablement returns before any provider invocation or geometry allocation. Individual disabled providers are skipped. The debug view does not process every frame; callers or the editor dock explicitly rebuild it.
 
-Phase 1 default providers display world bounds, regions and IDs, chunk coordinates/dirty state, the 4 m terrain grid, selected grid coordinates, record bounds/IDs/layer membership, and selected parent/child relationships. Future generators register providers through the same registry.
+Phase 1 default providers display world bounds, regions and IDs, chunk coordinates/dirty state, the 4 m terrain grid, selected grid coordinates, record bounds/IDs/layer membership, city-anchor state-colored markers/influence bounds/category labels, and selected parent/child relationships. Future generators register providers through the same registry.
 
 ## Editor workflow
 
@@ -162,7 +184,7 @@ Add or select a `FoundationWorld` with a `FoundationDebugView` child. The **Foun
 - enable/disable rendering globally
 - toggle each default provider
 - select the world, an abstract chunk, or a stable record
-- show stable IDs, bounds, layers, and parent identity
+- show stable IDs, bounds, layers, parent identity, and anchor category/position/priority/ownership
 - follow editor node selection
 - rebuild debug presentation explicitly
 

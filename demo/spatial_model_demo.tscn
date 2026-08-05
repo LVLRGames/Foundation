@@ -58,7 +58,7 @@ fov = 52.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 412.0
-offset_bottom = 442.0
+offset_bottom = 476.0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin"]
 layout_mode = 2
@@ -75,7 +75,7 @@ text = "Foundation Phase 1 — Spatial Model"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
-text = "Synthetic spatial records only. No procedural roads."
+text = "Synthetic spatial records and abstract anchors only. No procedural roads."
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
@@ -117,6 +117,12 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Sample record bounds and layer membership"
+
+[node name="AnchorToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Abstract city-anchor markers, IDs, and influence"
 
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true

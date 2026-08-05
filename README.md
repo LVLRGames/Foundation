@@ -2,7 +2,7 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 1 baseline combines the Phase 0 chunked terrain subsystem with a renderer-independent spatial world model: centralized coordinates, stable IDs, spatial records and layers, chunk-bucket indexing, abstract regions/chunks, versioned serialization seams, and a disposable layered debug view.
+The current Phase 1 baseline combines the Phase 0 chunked terrain subsystem with a renderer-independent spatial world model: centralized coordinates, stable IDs, spatial records and layers, chunk/region-bucket indexing, abstract city anchors, abstract regions/chunks, versioned serialization seams, and a disposable layered debug view.
 
 Procedural roads, blocks, parcels, buildings, and other city generators are intentionally not implemented yet.
 
@@ -10,10 +10,10 @@ Procedural roads, blocks, parcels, buildings, and other city generators are inte
 
 1. Open the repository in Godot 4.7 and confirm **Project > Project Settings > Plugins > Foundation** is enabled.
 2. Run the project. The main scene is `demo/spatial_model_demo.tscn`.
-3. Toggle world, region, chunk, 4 m terrain-grid, record, and relationship overlays.
-4. Select synthetic stable record IDs to inspect parent/child relationships.
+3. Toggle world, region, chunk, 4 m terrain-grid, record, anchor, and relationship overlays.
+4. Select synthetic stable record or anchor IDs to inspect their abstract data.
 
-The demo covers positive and negative chunk coordinates, region labels, dirty-chunk coloring, and records that span one or several chunk buckets. Its records are synthetic Phase 1 fixtures—not roads.
+The demo covers positive and negative chunk coordinates, region labels, dirty-chunk coloring, records that span several buckets, and point/radius city-anchor fixtures. Anchors express planning intent only; they are not connected and do not generate roads.
 
 The Phase 0 terrain demonstration remains available at `demo/terrain_demo.tscn`.
 
@@ -60,6 +60,17 @@ var record := FoundationSpatialRecord.new(
     Rect2(-24, -16, 48, 32)
 )
 world.register_record(record)
+
+var anchor := FoundationCityAnchor.create(
+    metadata,
+    FoundationCityAnchor.CATEGORY_CIVIC_CENTER,
+    Vector3(32, 0, -16),
+    "primary-civic-center",
+    24.0,
+    0.9
+)
+anchor.tags = PackedStringArray(["civic", "primary"])
+world.register_record(anchor)
 ```
 
 Queries return stable-ID order:
@@ -84,6 +95,6 @@ Run both acceptance suites with the installed Godot 4.7 executable:
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_1_tests.gd
 ```
 
-Phase 1 assertions cover negative coordinate boundaries, stable IDs, multi-chunk indexing, deterministic queries, dirty bounds, serialization, non-mutating debug providers, and the zero-work disabled debug path.
+Phase 1 assertions cover negative coordinate boundaries, stable IDs, multi-chunk and region indexing, abstract anchor identity/ownership/serialization/debug output, deterministic queries, dirty bounds, non-mutating debug providers, and the zero-work disabled debug path.
 
 See [docs/spatial_model.md](docs/spatial_model.md) for the complete Phase 1 contracts, provider API, and revised roadmap. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for Phase 0 visual-reference attribution.

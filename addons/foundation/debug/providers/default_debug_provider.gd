@@ -21,6 +21,8 @@ func append_debug(
 			_append_grid(world, builder, context)
 		&"records":
 			_append_records(world, builder, context)
+		&"anchors":
+			_append_anchors(world, builder, context)
 		&"relationships":
 			_append_relationships(world, builder, context)
 
@@ -110,6 +112,8 @@ func _append_records(
 ) -> void:
 	var selected_id := StringName(context.get("selected_record_id", ""))
 	for record in world.spatial_index.get_all_records():
+		if record is FoundationCityAnchor:
+			continue
 		var purpose := _record_purpose(record)
 		if record.stable_id == selected_id:
 			purpose = &"selected"
@@ -117,6 +121,31 @@ func _append_records(
 		builder.add_text(
 			_rect_center(record.world_bounds, 2.5),
 			"%s\n[%s]" % [record.stable_id, record.layer_type],
+			purpose
+		)
+
+
+func _append_anchors(
+	world: FoundationWorldData,
+	builder: FoundationDebugGeometryBuilder,
+	context: Dictionary
+) -> void:
+	var selected_id := StringName(context.get("selected_record_id", ""))
+	for anchor in world.get_anchors():
+		var purpose := _anchor_purpose(anchor)
+		if anchor.stable_id == selected_id:
+			purpose = &"selected"
+		var marker_position := anchor.world_position + Vector3.UP * 1.5
+		builder.add_point(marker_position, 2.5, purpose)
+		if anchor.has_influence():
+			builder.add_rect(anchor.world_bounds, 0.35, &"anchor_influence")
+		builder.add_text(
+			marker_position + Vector3.UP * 2.0,
+			"%s\n%s\npriority %.2f" % [
+				anchor.anchor_category,
+				anchor.stable_id,
+				anchor.priority_weight,
+			],
 			purpose
 		)
 
@@ -148,6 +177,16 @@ func _record_purpose(record: FoundationSpatialRecord) -> StringName:
 			return &"record_overridden"
 		_:
 			return &"record_generated"
+
+
+func _anchor_purpose(anchor: FoundationCityAnchor) -> StringName:
+	match anchor.authorship_state:
+		FoundationSpatialRecord.AuthorshipState.LOCKED:
+			return &"anchor_locked"
+		FoundationSpatialRecord.AuthorshipState.OVERRIDDEN:
+			return &"anchor_overridden"
+		_:
+			return &"anchor_generated"
 
 
 func _rect_center(bounds: Rect2, elevation: float) -> Vector3:

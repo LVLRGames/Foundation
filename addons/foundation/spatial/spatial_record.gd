@@ -16,6 +16,7 @@ var entity_type: StringName
 var layer_type: StringName
 var world_bounds: Rect2
 var owning_chunks: Array[Vector2i] = []
+var owning_regions: Array[Vector2i] = []
 var parent_id: StringName
 var child_ids: Array[StringName] = []
 var tags := PackedStringArray()
@@ -48,6 +49,11 @@ func set_owning_chunks(chunks: Array[Vector2i]) -> void:
 	owning_chunks.sort_custom(_sort_vector2i)
 
 
+func set_owning_regions(regions: Array[Vector2i]) -> void:
+	owning_regions = regions.duplicate()
+	owning_regions.sort_custom(_sort_vector2i)
+
+
 func add_child(child_id: StringName) -> void:
 	if child_id not in child_ids:
 		child_ids.append(child_id)
@@ -63,13 +69,18 @@ func to_dict() -> Dictionary:
 	var serialized_children: Array[String] = []
 	for child_id in child_ids:
 		serialized_children.append(String(child_id))
+	var serialized_regions: Array[Dictionary] = []
+	for region in owning_regions:
+		serialized_regions.append({"x": region.x, "y": region.y})
 	return {
 		"format_version": FORMAT_VERSION,
+		"record_kind": "spatial_record",
 		"stable_id": String(stable_id),
 		"entity_type": String(entity_type),
 		"layer_type": String(layer_type),
 		"world_bounds": _rect_to_dict(world_bounds),
 		"owning_chunks": serialized_chunks,
+		"owning_regions": serialized_regions,
 		"parent_id": String(parent_id),
 		"child_ids": serialized_children,
 		"tags": Array(tags),
@@ -88,10 +99,25 @@ static func from_dict(data: Dictionary) -> FoundationSpatialRecord:
 		_rect_from_dict(data.get("world_bounds", {})),
 		StringName(data.get("parent_id", ""))
 	)
+	apply_serialized_fields(record, data)
+	return record
+
+
+static func apply_serialized_fields(record: FoundationSpatialRecord, data: Dictionary) -> void:
+	record.stable_id = StringName(data.get("stable_id", ""))
+	record.entity_type = StringName(data.get("entity_type", "record"))
+	record.layer_type = StringName(data.get("layer_type", "feature"))
+	record.world_bounds = _rect_from_dict(data.get("world_bounds", {}))
+	record.parent_id = StringName(data.get("parent_id", ""))
 	var chunks: Array[Vector2i] = []
 	for chunk_data: Dictionary in data.get("owning_chunks", []):
 		chunks.append(Vector2i(int(chunk_data.get("x", 0)), int(chunk_data.get("y", 0))))
 	record.set_owning_chunks(chunks)
+	var regions: Array[Vector2i] = []
+	for region_data: Dictionary in data.get("owning_regions", []):
+		regions.append(Vector2i(int(region_data.get("x", 0)), int(region_data.get("y", 0))))
+	record.set_owning_regions(regions)
+	record.child_ids.clear()
 	for child_id: String in data.get("child_ids", []):
 		record.child_ids.append(StringName(child_id))
 	record.tags = PackedStringArray(data.get("tags", []))
@@ -99,7 +125,6 @@ static func from_dict(data: Dictionary) -> FoundationSpatialRecord:
 	record.source_pass = StringName(data.get("source_pass", ""))
 	record.source_version = int(data.get("source_version", 1))
 	record.metadata = data.get("metadata", {}).duplicate(true)
-	return record
 
 
 static func _rect_to_dict(rect: Rect2) -> Dictionary:

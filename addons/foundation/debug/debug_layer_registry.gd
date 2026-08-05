@@ -55,6 +55,6 @@ func build(world: FoundationWorldData, context: Dictionary = {}) -> FoundationDe
 
 func register_phase_1_defaults() -> void:
 	for provider_id in [
-		&"world_bounds", &"regions", &"chunks", &"terrain_grid", &"records", &"relationships",
+		&"world_bounds", &"regions", &"chunks", &"terrain_grid", &"records", &"anchors", &"relationships",
 	]:
 		register_provider(FoundationDefaultDebugProvider.new(provider_id), provider_id != &"relationships")

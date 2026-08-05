@@ -16,9 +16,11 @@ func _run() -> void:
 	_test_stable_ids()
 	var world := _make_world(coordinates)
 	var records := _test_registration_and_index(world)
+	var representative_anchor := _test_city_anchor_contract(world)
 	_test_dirty_bounds(world)
-	_test_serialization_round_trip(world, records[0])
+	_test_serialization_round_trip(world, records[0], representative_anchor)
 	_test_terrain_adapter(world)
+	_test_anchor_debug_output(world, representative_anchor)
 	_test_debug_contract(world)
 	_test_runtime_debug_view(world)
 	_test_editor_dock_layout()
@@ -181,9 +183,107 @@ func _test_dirty_bounds(world: FoundationWorldData) -> void:
 	_check(every_chunk_dirty, "dirty layer state is represented on abstract chunk data")
 
 
+func _test_city_anchor_contract(world: FoundationWorldData) -> FoundationCityAnchor:
+	var first := FoundationCityAnchor.create(
+		world.metadata,
+		FoundationCityAnchor.CATEGORY_MAP_EXIT,
+		Vector3(128.0, 0.0, 0.0),
+		"boundary-exit",
+		24.0,
+		0.75
+	)
+	var reproduced := FoundationCityAnchor.create(
+		world.metadata,
+		FoundationCityAnchor.CATEGORY_MAP_EXIT,
+		Vector3(128.0, 0.0, 0.0),
+		"boundary-exit",
+		24.0,
+		0.75
+	)
+	_check(first.stable_id == reproduced.stable_id, "city-anchor IDs reproduce from deterministic semantic context")
+	var expected_categories: Array[StringName] = [
+		FoundationCityAnchor.CATEGORY_CITY_CENTER,
+		FoundationCityAnchor.CATEGORY_CIVIC_CENTER,
+		FoundationCityAnchor.CATEGORY_HIGHWAY_ENTRANCE,
+		FoundationCityAnchor.CATEGORY_MAP_EXIT,
+		FoundationCityAnchor.CATEGORY_INDUSTRIAL_CENTER,
+		FoundationCityAnchor.CATEGORY_COMMERCIAL_CENTER,
+		FoundationCityAnchor.CATEGORY_WATERFRONT_CROSSING,
+		FoundationCityAnchor.CATEGORY_BRIDGE_CANDIDATE,
+		FoundationCityAnchor.CATEGORY_TRANSIT_NODE,
+		FoundationCityAnchor.CATEGORY_LANDMARK,
+		FoundationCityAnchor.CATEGORY_PUBLIC_SQUARE,
+		FoundationCityAnchor.CATEGORY_DISTRICT_SEED,
+		FoundationCityAnchor.CATEGORY_EXTERNAL_DESTINATION,
+	]
+	_check(
+		FoundationCityAnchor.get_builtin_categories() == expected_categories,
+		"city-anchor contract exposes every minimum extensible category constant"
+	)
+	var custom := FoundationCityAnchor.create(
+		world.metadata,
+		&"content_pack_custom_anchor",
+		Vector3(-128.0, 0.0, -1.0),
+		"custom-point"
+	)
+	_check(custom.anchor_category == &"content_pack_custom_anchor", "content packs can use open StringName anchor categories")
+	var explicit_bounds := Rect2(-20.0, 132.0, 52.0, 18.0)
+	var explicit := FoundationCityAnchor.create(
+		world.metadata,
+		FoundationCityAnchor.CATEGORY_WATERFRONT_CROSSING,
+		Vector3(4.0, 2.0, 140.0),
+		"explicit-influence",
+		12.0,
+		0.6,
+		explicit_bounds
+	)
+	var restored_explicit := FoundationCityAnchor.from_dict(explicit.to_dict())
+	_check(
+		restored_explicit.has_explicit_influence_bounds
+		and restored_explicit.influence_bounds == explicit_bounds
+		and restored_explicit.world_bounds == explicit_bounds,
+		"explicit anchor influence bounds take precedence and serialize independently"
+	)
+	_check(world.register_record(custom), "point anchors register through the shared spatial layer")
+	_check(
+		custom.owning_chunks == [Vector2i(-1, -1)],
+		"point anchors use floor-based negative chunk ownership"
+	)
+
+	first.tags = PackedStringArray(["external", "review_fixture"])
+	first.metadata = {"display_name": "Boundary Exit", "content_weight": 3}
+	first.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	first.source_pass = &"phase_1_anchor_fixture"
+	_check(world.register_record(first), "influence anchors register as renderer-independent records")
+	var expected_chunks: Array[Vector2i] = [
+		Vector2i(0, -1), Vector2i(1, -1), Vector2i(0, 0), Vector2i(1, 0),
+	]
+	_check(first.owning_chunks == expected_chunks, "boundary influence radius registers in every intersected chunk")
+	_check(
+		first.owning_regions == [Vector2i(0, -1), Vector2i(0, 0)],
+		"anchor chunk ownership resolves deterministic region ownership"
+	)
+	var every_chunk_has_anchor := true
+	for chunk_coordinate in expected_chunks:
+		every_chunk_has_anchor = every_chunk_has_anchor and first.stable_id in world.get_chunk(chunk_coordinate).get_record_ids(FoundationWorldData.CITY_ANCHOR_LAYER)
+	_check(every_chunk_has_anchor, "multi-chunk anchor ownership is mirrored by abstract chunks")
+	_check(
+		first in world.get_records_in_region(Vector2i(0, -1), FoundationWorldData.CITY_ANCHOR_LAYER),
+		"anchors are directly queryable through region buckets"
+	)
+	_check(world.get_anchors().size() == 2, "world exposes typed anchors without scene nodes")
+	var forbidden_methods := [&"connect_to", &"add_connection", &"generate_road", &"find_path", &"get_route"]
+	var has_topology_api := false
+	for method_name in forbidden_methods:
+		has_topology_api = has_topology_api or first.has_method(method_name)
+	_check(not has_topology_api and first.child_ids.is_empty(), "city-anchor contract adds no road topology or pathfinding API")
+	return first
+
+
 func _test_serialization_round_trip(
 	world: FoundationWorldData,
-	representative_record: FoundationSpatialRecord
+	representative_record: FoundationSpatialRecord,
+	representative_anchor: FoundationCityAnchor
 ) -> void:
 	var representative_chunk := world.get_chunk(Vector2i.ZERO)
 	representative_chunk.runtime_state = FoundationChunkData.RuntimeState.PHYSICS_LOADED
@@ -193,6 +293,7 @@ func _test_serialization_round_trip(
 	var manifest := world.to_dict()
 	var restored := FoundationWorldData.from_dict(manifest)
 	var restored_record := restored.get_record(representative_record.stable_id)
+	var restored_anchor := restored.get_record(representative_anchor.stable_id) as FoundationCityAnchor
 	_check(int(manifest.get("format_version", 0)) == 1, "world manifests have an explicit data-format version")
 	_check(restored_record != null, "stable IDs survive serialization round-trip")
 	_check(
@@ -217,6 +318,25 @@ func _test_serialization_round_trip(
 		restored_record.authorship_state == FoundationSpatialRecord.AuthorshipState.LOCKED,
 		"generated/locked/overridden state survives serialization"
 	)
+	_check(restored_anchor != null, "city anchors restore as their typed renderer-independent contract")
+	_check(
+		restored_anchor.anchor_category == representative_anchor.anchor_category
+		and restored_anchor.world_position == representative_anchor.world_position
+		and is_equal_approx(restored_anchor.influence_radius, representative_anchor.influence_radius)
+		and is_equal_approx(restored_anchor.priority_weight, representative_anchor.priority_weight),
+		"anchor category, position, influence, and priority survive serialization"
+	)
+	_check(
+		restored_anchor.tags == representative_anchor.tags
+		and restored_anchor.metadata == representative_anchor.metadata
+		and restored_anchor.authorship_state == FoundationSpatialRecord.AuthorshipState.OVERRIDDEN,
+		"anchor tags, metadata, and authorship state survive serialization"
+	)
+	_check(
+		restored_anchor.owning_chunks == representative_anchor.owning_chunks
+		and restored_anchor.owning_regions == representative_anchor.owning_regions,
+		"anchor chunk and region ownership survive index reconstruction"
+	)
 
 
 func _test_terrain_adapter(world: FoundationWorldData) -> void:
@@ -233,6 +353,26 @@ func _test_terrain_adapter(world: FoundationWorldData) -> void:
 	_check(extent.world_bounds == Rect2(-32.0, -24.0, 32.0, 24.0), "terrain adaptation preserves its authoritative extent")
 	_check(terrain_data.revision == revision_before, "terrain adaptation does not rewrite authoritative terrain arrays")
 	world_node.free()
+
+
+func _test_anchor_debug_output(
+	world: FoundationWorldData,
+	representative_anchor: FoundationCityAnchor
+) -> void:
+	var registry := FoundationDebugLayerRegistry.new()
+	registry.register_phase_1_defaults()
+	for provider_id in registry.get_provider_ids():
+		registry.set_layer_enabled(provider_id, provider_id == &"anchors")
+	var builder := registry.build(world)
+	_check(builder.line_purposes.has(&"anchor_overridden"), "anchor debug provider emits a state-colored point marker")
+	_check(builder.line_purposes.has(&"anchor_influence"), "anchor debug provider emits influence-bound geometry")
+	var has_label := false
+	for label: Dictionary in builder.labels:
+		var label_text := String(label.get("text", ""))
+		if String(representative_anchor.stable_id) in label_text and String(representative_anchor.anchor_category) in label_text:
+			has_label = true
+			break
+	_check(has_label, "anchor debug provider emits stable-ID and category labels")
 
 
 func _test_debug_contract(world: FoundationWorldData) -> void:

@@ -130,7 +130,13 @@ static func from_dict(
 	)
 	layer.metadata = data.get("metadata", {}).duplicate(true)
 	for record_data: Dictionary in data.get("records", []):
-		layer.register_record(FoundationSpatialRecord.from_dict(record_data))
+		var record_kind := StringName(record_data.get("record_kind", "spatial_record"))
+		var record: FoundationSpatialRecord
+		if record_kind == FoundationCityAnchor.RECORD_KIND:
+			record = FoundationCityAnchor.from_dict(record_data)
+		else:
+			record = FoundationSpatialRecord.from_dict(record_data)
+		layer.register_record(record)
 	layer.clear_dirty_chunks()
 	for chunk_data: Dictionary in data.get("dirty_chunks", []):
 		layer._dirty_chunks[Vector2i(int(chunk_data.get("x", 0)), int(chunk_data.get("y", 0)))] = true

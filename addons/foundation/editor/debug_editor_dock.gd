@@ -64,6 +64,7 @@ func _build_interface() -> void:
 		[&"chunks", "Chunks and dirty state"],
 		[&"terrain_grid", "Terrain cell grid"],
 		[&"records", "Spatial records"],
+		[&"anchors", "City anchor markers and IDs"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -129,6 +130,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"chunks"].button_pressed = _view.show_chunks
 	_layer_toggles[&"terrain_grid"].button_pressed = _view.show_terrain_grid
 	_layer_toggles[&"records"].button_pressed = _view.show_records
+	_layer_toggles[&"anchors"].button_pressed = _view.show_anchors
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -172,6 +174,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"chunks": _view.show_chunks = value
 		&"terrain_grid": _view.show_terrain_grid = value
 		&"records": _view.show_records = value
+		&"anchors": _view.show_anchors = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -193,9 +196,21 @@ func _debug_selection_changed(index: int) -> void:
 		"record":
 			_view.selected_record_id = selection["stable_id"]
 			var record := world_node.world_data.get_record(_view.selected_record_id)
-			_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
-				record.stable_id, record.world_bounds, record.parent_id, record.layer_type,
-			]
+			if record is FoundationCityAnchor:
+				var anchor := record as FoundationCityAnchor
+				_selection_details.text = "%s\nCategory: %s\nPosition: %s\nInfluence: %s\nPriority: %.2f\nChunks: %s\nRegions: %s" % [
+					anchor.stable_id,
+					anchor.anchor_category,
+					anchor.world_position,
+					anchor.world_bounds,
+					anchor.priority_weight,
+					anchor.owning_chunks,
+					anchor.owning_regions,
+				]
+			else:
+				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
+					record.stable_id, record.world_bounds, record.parent_id, record.layer_type,
+				]
 		_:
 			_selection_details.text = "World bounds: %s" % world_node.world_data.metadata.world_bounds
 

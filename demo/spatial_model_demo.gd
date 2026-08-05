@@ -60,6 +60,48 @@ func _add_synthetic_records() -> void:
 	data.register_record(parent)
 	data.register_record(child)
 	data.register_record(spanning)
+
+	var city_center := FoundationCityAnchor.create(
+		data.metadata,
+		FoundationCityAnchor.CATEGORY_CITY_CENTER,
+		Vector3(-96.0, 0.0, -32.0),
+		"western-city-center",
+		28.0,
+		1.0
+	)
+	city_center.authorship_state = FoundationSpatialRecord.AuthorshipState.LOCKED
+	city_center.tags = PackedStringArray(["synthetic", "anchor", "primary"])
+	city_center.metadata = {"display_name": "Western City Center"}
+	city_center.source_pass = &"phase_1_demo_fixture"
+
+	var map_exit := FoundationCityAnchor.create(
+		data.metadata,
+		FoundationCityAnchor.CATEGORY_MAP_EXIT,
+		Vector3(128.0, 0.0, 0.0),
+		"east-map-exit",
+		24.0,
+		0.8
+	)
+	map_exit.tags = PackedStringArray(["synthetic", "anchor", "multi_chunk_influence"])
+	map_exit.metadata = {"display_name": "Eastern Map Exit"}
+	map_exit.source_pass = &"phase_1_demo_fixture"
+
+	var district_seed := FoundationCityAnchor.create(
+		data.metadata,
+		FoundationCityAnchor.CATEGORY_DISTRICT_SEED,
+		Vector3(72.0, 0.0, 164.0),
+		"north-district-seed",
+		0.0,
+		0.55
+	)
+	district_seed.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	district_seed.tags = PackedStringArray(["synthetic", "anchor", "point"])
+	district_seed.metadata = {"display_name": "Northern District Seed"}
+	district_seed.source_pass = &"phase_1_demo_fixture"
+
+	data.register_record(city_center)
+	data.register_record(map_exit)
+	data.register_record(district_seed)
 	data.mark_layer_dirty(&"sample", Rect2(-4.0, -4.0, 8.0, 8.0))
 
 
@@ -81,6 +123,7 @@ func _bind_controls() -> void:
 	%ChunkToggle.toggled.connect(_layer_toggled.bind(&"chunks"))
 	%GridToggle.toggled.connect(_layer_toggled.bind(&"terrain_grid"))
 	%RecordToggle.toggled.connect(_layer_toggled.bind(&"records"))
+	%AnchorToggle.toggled.connect(_layer_toggled.bind(&"anchors"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	record_options.item_selected.connect(_record_selected)
@@ -109,6 +152,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"chunks": debug_view.show_chunks = enabled
 		&"terrain_grid": debug_view.show_terrain_grid = enabled
 		&"records": debug_view.show_records = enabled
+		&"anchors": debug_view.show_anchors = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -124,9 +168,10 @@ func _rebuild_debug() -> void:
 
 
 func _update_status() -> void:
-	status_label.text = "%d chunks | %d regions | %d records | %d debug primitives" % [
+	status_label.text = "%d chunks | %d regions | %d records (%d anchors) | %d debug primitives" % [
 		world.world_data.chunks.size(),
 		world.world_data.regions.size(),
 		world.world_data.spatial_index.get_record_count(),
+		world.world_data.get_anchors().size(),
 		debug_view.last_primitive_count,
 	]
