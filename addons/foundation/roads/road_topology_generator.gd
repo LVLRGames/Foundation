@@ -165,9 +165,7 @@ static func regenerate_derived_topology(
 	if world == null:
 		return result.fail("Derived road-topology regeneration requires FoundationWorldData.")
 	var active_profile := profile if profile != null else FoundationRoadGenerationProfile.new()
-	for logical in world.get_logical_roads():
-		if logical.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
-			world.unregister_record(logical.stable_id)
+	_remove_generated_logical_roads(world)
 	for intersection in world.get_road_intersections():
 		if intersection.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
 			world.unregister_record(intersection.stable_id)
@@ -228,12 +226,7 @@ static func clear_generated_road_data(world: FoundationWorldData) -> int:
 
 
 static func _remove_replaceable_records(world: FoundationWorldData) -> Dictionary:
-	var retained_logical_roads: Array[FoundationLogicalRoad] = []
-	for logical_road in world.get_logical_roads():
-		if logical_road.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
-			world.unregister_record(logical_road.stable_id)
-		else:
-			retained_logical_roads.append(logical_road)
+	var retained_logical_roads := _remove_generated_logical_roads(world)
 	var retained_intersections: Array[FoundationIntersectionRecord] = []
 	for intersection in world.get_road_intersections():
 		if intersection.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
@@ -273,6 +266,24 @@ static func _remove_replaceable_records(world: FoundationWorldData) -> Dictionar
 	for intersection in retained_intersections:
 		world.register_record(intersection)
 	return {"nodes": preserved_nodes, "edges": preserved_edges}
+
+
+static func _remove_generated_logical_roads(
+	world: FoundationWorldData
+) -> Array[FoundationLogicalRoad]:
+	var retained: Array[FoundationLogicalRoad] = []
+	var generated_ids: Dictionary = {}
+	for logical_road in world.get_logical_roads():
+		if logical_road.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
+			generated_ids[logical_road.stable_id] = true
+		else:
+			retained.append(logical_road)
+	for edge in world.get_road_edges():
+		if generated_ids.has(edge.logical_road_id):
+			edge.logical_road_id = &""
+	for logical_id: StringName in generated_ids:
+		world.unregister_record(logical_id)
+	return retained
 
 
 static func _set_layer_generation_metadata(

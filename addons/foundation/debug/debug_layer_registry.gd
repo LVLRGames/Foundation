@@ -62,3 +62,4 @@ func register_phase_1_defaults() -> void:
 	register_provider(FoundationRoadTopologyDebugProvider.new(&"road_costs"), false)
 	register_provider(FoundationRoadTopologyDebugProvider.new(&"road_candidates"), false)
 	register_provider(FoundationRoadTopologyDebugProvider.new(&"road_validation"), false)
+	register_provider(FoundationBlockDebugProvider.new())

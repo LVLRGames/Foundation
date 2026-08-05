@@ -69,6 +69,7 @@ func _build_interface() -> void:
 		[&"road_costs", "Terrain routing-cost heatmap"],
 		[&"road_candidates", "Accepted and rejected anchor candidates"],
 		[&"road_validation", "Grading and topology validation warnings"],
+		[&"blocks", "Block outlines, fills, metrics, and diagnostics"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -139,6 +140,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"road_costs"].button_pressed = _view.show_road_costs
 	_layer_toggles[&"road_candidates"].button_pressed = _view.show_road_candidates
 	_layer_toggles[&"road_validation"].button_pressed = _view.show_road_validation
+	_layer_toggles[&"blocks"].button_pressed = _view.show_blocks
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -187,6 +189,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"road_costs": _view.show_road_costs = value
 		&"road_candidates": _view.show_road_candidates = value
 		&"road_validation": _view.show_road_validation = value
+		&"blocks": _view.show_blocks = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -264,6 +267,18 @@ func _debug_selection_changed(index: int) -> void:
 					road_edge.maximum_slope_degrees,
 					road_edge.owning_chunks,
 					road_edge.owning_regions,
+				]
+			elif record is FoundationBlockRecord:
+				var block := record as FoundationBlockRecord
+				_selection_details.text = "%s\nArea: %.2f\nPerimeter: %.2f\nVertices: %d\nBoundary roads: %d\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					block.stable_id,
+					block.area,
+					block.perimeter,
+					block.outer_boundary.size(),
+					block.boundary_road_ids.size(),
+					block.validation_state,
+					block.owning_chunks,
+					block.owning_regions,
 				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [

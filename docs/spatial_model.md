@@ -1,6 +1,6 @@
 # Foundation Phase 1 spatial model
 
-This document defines the Phase 1 substrate. Phase 2 now consumes its city anchors and spatial index to create abstract terrain-aware road nodes and edges; see [road_topology.md](road_topology.md).
+This document defines the Phase 1 substrate. Phase 2 consumes its city anchors and spatial index to create abstract terrain-aware road nodes and edges; Phase 3 derives bounded blocks from those roads. See [road_topology.md](road_topology.md) and [block_extraction.md](block_extraction.md).
 
 ## Architectural rule
 

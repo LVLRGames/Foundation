@@ -145,6 +145,8 @@ static func from_dict(
 				record = FoundationLogicalRoad.from_dict(record_data)
 			FoundationIntersectionRecord.RECORD_KIND:
 				record = FoundationIntersectionRecord.from_dict(record_data)
+			FoundationBlockRecord.RECORD_KIND:
+				record = FoundationBlockRecord.from_dict(record_data)
 			_:
 				record = FoundationSpatialRecord.from_dict(record_data)
 		layer.register_record(record)

@@ -2,6 +2,8 @@
 
 Phase 2 turns Phase 1 city anchors, spatial records, and Phase 0 terrain into a deterministic renderer-independent road-planning graph. The visible output is disposable batched debug geometry. No road mesh, lane graph, gameplay navigation, traffic system, block, parcel, or terrain deformation is created.
 
+Phase 3 now consumes these route polylines to extract bounded abstract blocks; see [block_extraction.md](block_extraction.md). Road records remain independent authoritative inputs.
+
 ## Data model
 
 All authoritative types are `RefCounted` records with versioned dictionary serialization. No core road record inherits `Node`.

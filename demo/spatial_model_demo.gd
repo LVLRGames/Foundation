@@ -8,6 +8,7 @@ extends Node3D
 var terrain_data: FoundationTerrainData
 var terrain_origin_cell := Vector2i(-64, -64)
 var road_result: FoundationRoadGenerationResult
+var block_result: FoundationBlockGenerationResult
 
 
 func _ready() -> void:
@@ -15,6 +16,9 @@ func _ready() -> void:
 	_add_synthetic_records()
 	_register_selected_patterns()
 	_generate_road_topology()
+	_add_phase_3_road_fixtures()
+	road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
+	block_result = FoundationBlockExtractor.generate(world.world_data)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -23,6 +27,7 @@ func _ready() -> void:
 	debug_view.show_road_costs = %CostToggle.button_pressed
 	debug_view.show_road_candidates = %CandidateToggle.button_pressed
 	debug_view.show_road_validation = %ValidationToggle.button_pressed
+	debug_view.show_blocks = %BlockToggle.button_pressed
 	debug_view.rebuild()
 	$Camera3D.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -202,6 +207,42 @@ func _generate_road_topology() -> void:
 	)
 
 
+func _add_phase_3_road_fixtures() -> void:
+	var l_boundary := PackedVector2Array([
+		Vector2(-236.0, -236.0), Vector2(-116.0, -236.0),
+		Vector2(-116.0, -196.0), Vector2(-176.0, -196.0),
+		Vector2(-176.0, -116.0), Vector2(-236.0, -116.0),
+		Vector2(-236.0, -236.0),
+	])
+	_register_demo_road("phase-3-l-shaped-loop", l_boundary, true)
+	_register_demo_road("phase-3-open-component", PackedVector2Array([
+		Vector2(-236.0, 204.0), Vector2(-164.0, 232.0), Vector2(-84.0, 208.0),
+	]), false)
+
+
+func _register_demo_road(semantic_key: String, points: PackedVector2Array, closed: bool) -> void:
+	var route := PackedVector3Array()
+	var sampler := FoundationTerrainSampler.new(terrain_data)
+	var terrain_origin := Vector2(terrain_origin_cell) * terrain_data.cell_size
+	for point in points:
+		var local := point - terrain_origin
+		route.append(Vector3(point.x, sampler.get_height_at_world(local), point.y))
+	var edge := FoundationRoadEdge.new(
+		_make_id(FoundationRoadEdge.ENTITY_TYPE, &"", semantic_key),
+		&"",
+		&"",
+		route,
+		FoundationRoadEdge.CLASS_CONNECTOR
+	)
+	edge.authorship_state = FoundationSpatialRecord.AuthorshipState.LOCKED
+	edge.source_pass = &"phase_3_demo_fixture"
+	edge.tags = PackedStringArray([
+		"phase_3", "demo", "bounded_loop" if closed else "open_component",
+	])
+	edge.metadata = {"phase_3_demo_fixture": true, "closed": closed}
+	world.world_data.register_record(edge)
+
+
 func _make_id(entity_type: StringName, parent_id: StringName, semantic_key: String) -> StringName:
 	return FoundationSpatialId.make(
 		world.world_data.metadata.seed,
@@ -225,6 +266,7 @@ func _bind_controls() -> void:
 	%CostToggle.toggled.connect(_layer_toggled.bind(&"road_costs"))
 	%CandidateToggle.toggled.connect(_layer_toggled.bind(&"road_candidates"))
 	%ValidationToggle.toggled.connect(_layer_toggled.bind(&"road_validation"))
+	%BlockToggle.toggled.connect(_layer_toggled.bind(&"blocks"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -261,6 +303,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"road_costs": debug_view.show_road_costs = enabled
 		&"road_candidates": debug_view.show_road_candidates = enabled
 		&"road_validation": debug_view.show_road_validation = enabled
+		&"blocks": debug_view.show_blocks = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -284,8 +327,9 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2")
+	%StageOptions.add_item("Full Phase 2 + Phase 3 blocks")
 	%StageOptions.add_item("Logical roads + intersections")
+	%StageOptions.add_item("Block extraction")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -293,17 +337,30 @@ func _configure_generation_controls() -> void:
 
 
 func _regenerate_selected_stage() -> void:
-	if %StageOptions.selected == 0:
-		_register_selected_patterns()
-		_generate_road_topology()
-	else:
-		road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
+	match %StageOptions.selected:
+		0:
+			_register_selected_patterns()
+			_generate_road_topology()
+			_add_phase_3_road_fixtures()
+			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
+			block_result = FoundationBlockExtractor.generate(world.world_data)
+		1:
+			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
+		_:
+			block_result = FoundationBlockExtractor.generate(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
 
 
 func _clear_road_data() -> void:
 	FoundationRoadTopologyGenerator.clear_generated_road_data(world.world_data)
+	for edge in world.world_data.get_road_edges():
+		if bool(edge.metadata.get("phase_3_demo_fixture", false)):
+			world.world_data.unregister_record(edge.stable_id)
+	FoundationRoadTopologyGenerator.clear_generated_road_data(world.world_data)
+	for block in world.world_data.get_blocks():
+		if block.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
+			world.world_data.unregister_record(block.stable_id)
 	_populate_record_options()
 	_rebuild_debug()
 
@@ -318,7 +375,7 @@ func _apply_selected_state() -> void:
 
 func _update_status() -> void:
 	var issue_count := road_result.validation_issues.size() if road_result != null else 0
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d debug" % [
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -326,5 +383,6 @@ func _update_status() -> void:
 		world.world_data.get_logical_roads().size(),
 		world.world_data.get_road_intersections().size(),
 		issue_count,
+		world.world_data.get_blocks().size(),
 		debug_view.last_primitive_count,
 	]

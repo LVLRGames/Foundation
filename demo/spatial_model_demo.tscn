@@ -48,6 +48,7 @@ show_road_topology = true
 show_road_costs = true
 show_road_candidates = false
 show_road_validation = true
+show_blocks = true
 show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -75,11 +76,11 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Foundation Phase 2 — Terrain-Aware Road Topology"
+text = "Foundation Phase 3 — Deterministic Block Extraction"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
-text = "Abstract planning only: hierarchy, logical roads, intersections, and grading reports; no physical road geometry."
+text = "Abstract roads and centerline blocks only; no parcels, buildings, physical roads, traffic, navigation, or terrain grading."
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
@@ -197,6 +198,12 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Warnings"
+
+[node name="BlockToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Canonical block outlines, concave fills, metrics, and diagnostics"
 
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
