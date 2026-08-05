@@ -1,5 +1,7 @@
 # Foundation Phase 1 spatial model
 
+This document defines the Phase 1 substrate. Phase 2 now consumes its city anchors and spatial index to create abstract terrain-aware road nodes and edges; see [road_topology.md](road_topology.md).
+
 ## Architectural rule
 
 `FoundationWorldData` owns abstract world state. Renderers, debug overlays, editor UI, navigation, collision, and gameplay consume that data; none of them becomes authoritative.
@@ -22,13 +24,13 @@ FoundationWorld
     └── FoundationChunkData[]
 ```
 
-Phase 1 deliberately contains no procedural road topology.
+Phase 1 deliberately contained no procedural road topology. That separation remains architectural: Phase 2 is a consumer of these contracts rather than road behavior embedded in city anchors.
 
 ## Revised roadmap
 
 1. Deterministic chunked terrain
 2. Spatial world model, coordinates, stable IDs, layers/indexing, serialization seams, and debug visualization
-3. Terrain-aware road graph topology and debug lines
+3. Terrain-aware abstract road graph topology and debug lines (implemented in Phase 2)
 4. Block extraction
 5. Parcel subdivision
 6. Primitive building massing
@@ -56,7 +58,7 @@ Phase 1 deliberately contains no procedural road topology.
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The `terrain`, `city_anchors`, and `override` layers are registered by default. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_nodes` and `road_edges`. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
 
 ## Coordinate conventions
 
@@ -112,7 +114,7 @@ An explicit influence rectangle takes precedence over the radius for indexing. R
 
 Built-in category constants cover `city_center`, `civic_center`, `highway_entrance`, `map_exit`, `industrial_center`, `commercial_center`, `waterfront_crossing`, `bridge_candidate`, `transit_node`, `landmark`, `public_square`, `district_seed`, and `external_destination`. These are vocabulary conveniences, not a closed enum; content packs may use any non-empty `StringName`.
 
-Categories such as highway entrance and bridge candidate are only unconnected intent labels. Phase 1 anchors contain no edges, neighbors, routing costs, pathfinding methods, or road-generation behavior.
+Categories such as highway entrance and bridge candidate remain intent labels. Phase 1 anchors themselves contain no edges, neighbors, routing costs, pathfinding methods, or road-generation behavior; Phase 2 derives separate road records from them.
 
 ## Generated, locked, and overridden semantics
 
@@ -190,9 +192,9 @@ Add or select a `FoundationWorld` with a `FoundationDebugView` child. The **Foun
 
 Changing debug visibility never regenerates world or terrain data.
 
-## Phase 1 limits
+## Phase 1 substrate limits
 
-- No procedural roads, road graph, pathfinding, lanes, or intersections
+- No road behavior inside anchors or the base spatial model; Phase 2 supplies separate abstract topology records
 - No final persistence backend or binary format
 - No full streaming scheduler despite region/chunk state seams
 - No complete override-authoring editor

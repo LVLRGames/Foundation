@@ -2,20 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 1 baseline combines the Phase 0 chunked terrain subsystem with a renderer-independent spatial world model: centralized coordinates, stable IDs, spatial records and layers, chunk/region-bucket indexing, abstract city anchors, abstract regions/chunks, versioned serialization seams, and a disposable layered debug view.
+The current Phase 2 baseline combines chunked terrain, the renderer-independent Phase 1 spatial model and city anchors, and deterministic terrain-aware abstract road topology. Roads exist as stable node and edge records with terrain-routed polylines, spatial ownership, versioned serialization, authorship states, and batched debug presentation.
 
-Procedural roads, blocks, parcels, buildings, and other city generators are intentionally not implemented yet.
+Road meshes, lane geometry, gameplay navigation, traffic, intersections, and terrain grading are intentionally not implemented.
 
-## Run the Phase 1 demo
+## Run the Phase 2 demo
 
 1. Open the repository in Godot 4.7 and confirm **Project > Project Settings > Plugins > Foundation** is enabled.
 2. Run the project. The main scene is `demo/spatial_model_demo.tscn`.
-3. Toggle world, region, chunk, 4 m terrain-grid, record, anchor, and relationship overlays.
-4. Select synthetic stable record or anchor IDs to inspect their abstract data.
+3. Toggle world, region, chunk, terrain-grid, anchor, relationship, and road-topology overlays.
+4. Select stable anchor, road-node, or road-edge IDs to inspect abstract data and routing metadata.
 
-The demo covers positive and negative chunk coordinates, region labels, dirty-chunk coloring, records that span several buckets, and point/radius city-anchor fixtures. Anchors express planning intent only; they are not connected and do not generate roads.
-
-The Phase 0 terrain demonstration remains available at `demo/terrain_demo.tscn`.
+The demo generates a signed-origin Phase 0 terrain, registers it with the Phase 1 world, and connects three anchors with Phase 2 topology. It covers negative coordinates, chunk/region labels, state-colored road records, route costs and slope metadata. The original terrain-only scene remains at `demo/terrain_demo.tscn`.
 
 ## Locked spatial defaults
 
@@ -29,11 +27,9 @@ The Phase 0 terrain demonstration remains available at `demo/terrain_demo.tscn`.
 
 All coordinate conversion goes through `FoundationCoordinateSystem`. Negative positions use floor division, so -1 m is in chunk -1 and -128 m is the beginning of chunk -1.
 
-## Install and create a world
+## Create terrain, anchors, and topology
 
-Copy `addons/foundation/` into another project's `addons/` directory and enable **Foundation**. Add a `FoundationWorld` node and optionally a `FoundationDebugView` child.
-
-Runtime data can also be created without scene-tree nodes:
+Copy `addons/foundation/` into another project's `addons/` directory and enable **Foundation**. Runtime data can be created without scene-tree nodes:
 
 ```gdscript
 var metadata := FoundationWorldMetadata.new()
@@ -45,22 +41,6 @@ var world := FoundationWorldData.new(metadata, coordinates)
 world.initialize_default_layers()
 world.initialize_partitions()
 
-var record_id := FoundationSpatialId.make(
-    metadata.seed,
-    metadata.generator_version,
-    metadata.content_pack_version,
-    &"site",
-    &"",
-    "civic-center"
-)
-var record := FoundationSpatialRecord.new(
-    record_id,
-    &"site",
-    &"feature",
-    Rect2(-24, -16, 48, 32)
-)
-world.register_record(record)
-
 var anchor := FoundationCityAnchor.create(
     metadata,
     FoundationCityAnchor.CATEGORY_CIVIC_CENTER,
@@ -69,32 +49,47 @@ var anchor := FoundationCityAnchor.create(
     24.0,
     0.9
 )
-anchor.tags = PackedStringArray(["civic", "primary"])
 world.register_record(anchor)
+
+var terrain_profile := FoundationTerrainProfile.new()
+terrain_profile.seed = metadata.seed
+terrain_profile.grid_cells = Vector2i(128, 128)
+var terrain := FoundationTerrainGenerator.generate(terrain_profile)
+var terrain_origin_cell := Vector2i(-64, -64)
+
+var road_profile := FoundationRoadGenerationProfile.new()
+var result := FoundationRoadTopologyGenerator.generate(
+    world,
+    terrain,
+    terrain_origin_cell,
+    road_profile
+)
+assert(result.success)
 ```
+
+When using a scene-facing `FoundationWorld` node, call its `register_terrain_extent()` helper to expose the terrain footprint through the spatial index. The topology generator itself consumes the authoritative terrain arrays directly.
 
 Queries return stable-ID order:
 
 ```gdscript
-var record := world.get_record(record_id)
-var nearby := world.query_bounds(Rect2(-64, -64, 128, 128), [&"feature"])
-var chunk_records := world.get_records_in_chunk(Vector2i(-1, 0), &"feature")
-var dirty_chunks := world.mark_layer_dirty(&"feature", record.world_bounds)
+var nearby := world.query_bounds(Rect2(-64, -64, 128, 128))
+var road_nodes := world.get_road_nodes()
+var road_edges := world.get_road_edges()
+var chunk_edges := world.get_records_in_chunk(Vector2i(-1, 0), &"road_edges")
 ```
 
-## Terrain integration
-
-Phase 0 terrain remains authoritative in `FoundationTerrainData`. `FoundationWorld.register_terrain_extent()` adapts its spatial extent into the terrain layer without moving or rewriting terrain arrays. Terrain generation, sampling, modification, rendering, and collision remain documented in [docs/architecture.md](docs/architecture.md).
+Phase 0 terrain remains authoritative in `FoundationTerrainData`. Topology generation reads its heights, slopes, flags, and surfaces without moving, grading, or rewriting its arrays.
 
 ## Validation
 
-Run both acceptance suites with the installed Godot 4.7 executable:
+Run the complete acceptance and smoke set with Godot 4.7:
 
 ```powershell
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_0_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_1_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_2_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-Phase 1 assertions cover negative coordinate boundaries, stable IDs, multi-chunk and region indexing, abstract anchor identity/ownership/serialization/debug output, deterministic queries, dirty bounds, non-mutating debug providers, and the zero-work disabled debug path.
-
-See [docs/spatial_model.md](docs/spatial_model.md) for the complete Phase 1 contracts, provider API, and revised roadmap. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for Phase 0 visual-reference attribution.
+See [docs/road_topology.md](docs/road_topology.md) for the Phase 2 contract, deterministic cost model, regeneration semantics, serialization, and exclusions. Phase 1 spatial contracts are in [docs/spatial_model.md](docs/spatial_model.md), and Phase 0 terrain architecture is in [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
