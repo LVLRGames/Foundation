@@ -1,4 +1,6 @@
-# Foundation Phase 0 architecture
+# Foundation Phase 0 terrain architecture
+
+Phase 1 spatial-world responsibilities are documented separately in [spatial_model.md](spatial_model.md). Terrain arrays remain authoritative and are adapted into the world model without being rewritten.
 
 ## Data first, rendering second
 

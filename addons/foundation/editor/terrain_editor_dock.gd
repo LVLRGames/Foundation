@@ -1,10 +1,11 @@
 @tool
 class_name FoundationTerrainEditorDock
-extends VBoxContainer
+extends ScrollContainer
 
 ## Deliberately explicit editor actions; profile changes never trigger large rebuilds.
 
 var _editor_interface: EditorInterface
+var _content: VBoxContainer
 var _terrain: FoundationTerrain
 var _status_label: Label
 var _seed_input: SpinBox
@@ -24,6 +25,13 @@ func initialize(editor_interface: EditorInterface) -> void:
 
 func _ready() -> void:
 	name = "Foundation Terrain"
+	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content = VBoxContainer.new()
+	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(_content)
 	_build_interface()
 	_connect_selection()
 	_selection_changed()
@@ -41,11 +49,11 @@ func _build_interface() -> void:
 	var heading := Label.new()
 	heading.text = "Foundation Phase 0"
 	heading.add_theme_font_size_override("font_size", 18)
-	add_child(heading)
+	_content.add_child(heading)
 
 	_status_label = Label.new()
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_status_label)
+	_content.add_child(_status_label)
 
 	_seed_input = _add_spinbox("Seed", -2147483648.0, 2147483647.0, 1.0)
 	_width_input = _add_spinbox("Width (cells)", 1.0, 4096.0, 1.0)
@@ -58,12 +66,12 @@ func _build_interface() -> void:
 	var generate_button := Button.new()
 	generate_button.text = "Generate Terrain"
 	generate_button.pressed.connect(_generate_pressed)
-	add_child(generate_button)
+	_content.add_child(generate_button)
 
 	var rebuild_button := Button.new()
 	rebuild_button.text = "Rebuild Dirty Chunks"
 	rebuild_button.pressed.connect(_rebuild_pressed)
-	add_child(rebuild_button)
+	_content.add_child(rebuild_button)
 
 
 func _add_spinbox(label_text: String, minimum: float, maximum: float, step: float) -> SpinBox:
@@ -80,7 +88,7 @@ func _add_spinbox(label_text: String, minimum: float, maximum: float, step: floa
 	input.allow_lesser = minimum < 0.0
 	input.custom_arrow_step = step
 	row.add_child(input)
-	add_child(row)
+	_content.add_child(row)
 	return input
 
 
