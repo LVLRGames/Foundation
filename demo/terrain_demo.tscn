@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bjxwouwfj4inx" path="res://demo/terrain_demo.gd" id="1_demo"]
 [ext_resource type="Script" uid="uid://o4yq3ygm2ee8" path="res://addons/foundation/terrain/terrain_chunk_manager.gd" id="2_terrain"]
 [ext_resource type="Script" uid="uid://hkeqck1gaw8c" path="res://addons/foundation/terrain/terrain_profile.gd" id="3_profile"]
+[ext_resource type="Script" path="res://demo/fly_camera.gd" id="4_camera"]
 
 [sub_resource type="Environment" id="Environment_demo"]
 background_mode = 1
@@ -26,7 +27,6 @@ shadow_enabled = true
 directional_shadow_max_distance = 500.0
 
 [node name="FoundationTerrain" type="Node3D" parent="." unique_id=814224278]
-transform = Transform3D(-1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("2_terrain")
 profile = SubResource("Resource_profile")
 smooth_normals = false
@@ -35,6 +35,7 @@ smooth_normals = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 120, 210)
 current = true
 far = 1000.0
+script = ExtResource("4_camera")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1981288900]
 
@@ -42,7 +43,7 @@ far = 1000.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 366.0
-offset_bottom = 205.0
+offset_bottom = 225.0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin" unique_id=1320254545]
 layout_mode = 2
@@ -98,4 +99,5 @@ text = "Next seed"
 
 [node name="Help" type="Label" parent="UI/Margin/Panel/Content" unique_id=1880049822]
 layout_mode = 2
-text = "WASD move | Q/E lower/raise camera"
+autowrap_mode = 2
+text = "Hold RMB to look | WASD move | Q/E down/up | Shift boost | wheel changes speed"

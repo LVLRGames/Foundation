@@ -5,8 +5,6 @@ extends Node3D
 @onready var seed_input: SpinBox = %SeedInput
 @onready var status_label: Label = %StatusLabel
 
-var _camera_speed := 45.0
-
 
 func _ready() -> void:
 	seed_input.value = terrain.profile.seed
@@ -16,25 +14,6 @@ func _ready() -> void:
 	terrain.terrain_generated.connect(_terrain_generated)
 	camera.look_at(_terrain_center(), Vector3.UP)
 	_update_status()
-
-
-func _process(delta: float) -> void:
-	var movement := Vector3.ZERO
-	if Input.is_key_pressed(KEY_W):
-		movement.z -= 1.0
-	if Input.is_key_pressed(KEY_S):
-		movement.z += 1.0
-	if Input.is_key_pressed(KEY_A):
-		movement.x -= 1.0
-	if Input.is_key_pressed(KEY_D):
-		movement.x += 1.0
-	if Input.is_key_pressed(KEY_Q):
-		movement.y -= 1.0
-	if Input.is_key_pressed(KEY_E):
-		movement.y += 1.0
-	if movement != Vector3.ZERO:
-		camera.position += movement.normalized() * _camera_speed * delta
-		camera.look_at(_terrain_center(), Vector3.UP)
 
 
 func _generate_from_ui() -> void:
