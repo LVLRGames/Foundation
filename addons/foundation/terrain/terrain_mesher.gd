@@ -44,11 +44,11 @@ static func build_mesh(data: FoundationTerrainData, chunk: Vector2i, smooth_norm
 			var southwest := northwest + local_vertex_size.x
 			var southeast := southwest + 1
 			if data.get_cell_diagonal(cell) == FoundationTerrainData.TriangleDiagonal.NORTHWEST_SOUTHEAST:
-				write_index = _write_triangle(indices, write_index, northwest, southwest, southeast)
-				write_index = _write_triangle(indices, write_index, northwest, southeast, northeast)
+				write_index = _write_triangle(indices, write_index, northwest, southeast, southwest)
+				write_index = _write_triangle(indices, write_index, northwest, northeast, southeast)
 			else:
-				write_index = _write_triangle(indices, write_index, northwest, southwest, northeast)
-				write_index = _write_triangle(indices, write_index, northeast, southwest, southeast)
+				write_index = _write_triangle(indices, write_index, northwest, northeast, southwest)
+				write_index = _write_triangle(indices, write_index, northeast, southeast, southwest)
 
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
@@ -75,6 +75,10 @@ static func _build_flat_mesh(data: FoundationTerrainData, chunk: Vector2i) -> Ar
 		var normal := (
 			vertices[triangle_start + 1] - vertices[triangle_start]
 		).cross(vertices[triangle_start + 2] - vertices[triangle_start]).normalized()
+		# Godot front faces use clockwise winding, whose geometric cross product points
+		# opposite the authored lighting normal for this XZ terrain convention.
+		if normal.y < 0.0:
+			normal = -normal
 		for offset in range(3):
 			normals[triangle_start + offset] = normal
 	var write_index := 0
@@ -115,11 +119,11 @@ static func build_collision_faces(data: FoundationTerrainData, chunk: Vector2i) 
 			var southwest := _local_vertex(data, rect.position, cell + Vector2i.DOWN)
 			var southeast := _local_vertex(data, rect.position, cell + Vector2i.ONE)
 			if data.get_cell_diagonal(cell) == FoundationTerrainData.TriangleDiagonal.NORTHWEST_SOUTHEAST:
-				write_index = _write_face(faces, write_index, northwest, southwest, southeast)
-				write_index = _write_face(faces, write_index, northwest, southeast, northeast)
+				write_index = _write_face(faces, write_index, northwest, southeast, southwest)
+				write_index = _write_face(faces, write_index, northwest, northeast, southeast)
 			else:
-				write_index = _write_face(faces, write_index, northwest, southwest, northeast)
-				write_index = _write_face(faces, write_index, northeast, southwest, southeast)
+				write_index = _write_face(faces, write_index, northwest, northeast, southwest)
+				write_index = _write_face(faces, write_index, northeast, southeast, southwest)
 	return faces
 
 

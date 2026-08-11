@@ -109,19 +109,34 @@ func _test_meshing_is_read_only(data: FoundationTerrainData) -> void:
 
 
 func _test_mesh_orientation(data: FoundationTerrainData) -> void:
+	var smooth_mesh := FoundationTerrainMesher.build_mesh(data, Vector2i.ZERO, true)
+	var smooth_arrays := smooth_mesh.surface_get_arrays(0)
+	var visual_vertices: PackedVector3Array = smooth_arrays[Mesh.ARRAY_VERTEX]
+	var visual_indices: PackedInt32Array = smooth_arrays[Mesh.ARRAY_INDEX]
+	var visual_faces_clockwise := true
+	for triangle_start in range(0, visual_indices.size(), 3):
+		var first := visual_vertices[visual_indices[triangle_start]]
+		var second := visual_vertices[visual_indices[triangle_start + 1]]
+		var third := visual_vertices[visual_indices[triangle_start + 2]]
+		if (second - first).cross(third - first).y >= 0.0:
+			visual_faces_clockwise = false
+			break
+	_check(visual_faces_clockwise, "visual terrain uses Godot's upward-visible clockwise winding")
+
 	var collision_faces := FoundationTerrainMesher.build_collision_faces(data, Vector2i.ZERO)
-	var collision_faces_up := true
+	var collision_faces_clockwise := true
 	for triangle_start in range(0, collision_faces.size(), 3):
 		var normal := (
 			collision_faces[triangle_start + 1] - collision_faces[triangle_start]
 		).cross(collision_faces[triangle_start + 2] - collision_faces[triangle_start])
-		if normal.y <= 0.0:
-			collision_faces_up = false
+		# Godot renders clockwise triangle winding as front-facing. With Foundation's
+		# XZ grid convention, an upward-visible front face has a negative cross Y.
+		if normal.y >= 0.0:
+			collision_faces_clockwise = false
 			break
-	_check(collision_faces_up, "terrain visual and collision triangles wind upward")
+	_check(collision_faces_clockwise, "collision terrain matches the visual clockwise winding")
 
-	var smooth_mesh := FoundationTerrainMesher.build_mesh(data, Vector2i.ZERO, true)
-	var smooth_normals: PackedVector3Array = smooth_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+	var smooth_normals: PackedVector3Array = smooth_arrays[Mesh.ARRAY_NORMAL]
 	var smooth_normals_up := true
 	for normal in smooth_normals:
 		if normal.y <= 0.0:

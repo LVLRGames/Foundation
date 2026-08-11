@@ -14,6 +14,8 @@ Parcel kinds are `standard`, `corner`, `flag_access`, and `remainder`. Standard 
 
 The strips partition the full parent extent. Their clipped components therefore cover the parent polygon, including explicit remainder/access-required pieces. `FoundationParcelValidator` checks outside-parent geometry, overlap, area coverage, degeneracy, self-intersection, frontage/access rules, and road/logical-road provenance. Coverage tolerance is derived only from the serialized geometry profile.
 
+Strip parcels span the selected block cross-axis. Deep blocks can therefore produce elongated parcels up to the configured `maximum_depth` (128 m by default), and Phase 5 massing follows those parcel envelopes. Shared boundaries between generated parcels are lot lines only: they do not imply a road, lane, driveway, or alley. A parcel has road frontage only where its boundary carries explicit source road-edge and logical-road provenance from the parent block. More proportional back-to-back lots or explicit alley/service topology require a later subdivision contract because they change parcel geometry and stable identities.
+
 The named seed streams are:
 
 - `parcel_split_orientation`
