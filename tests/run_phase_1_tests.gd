@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_terrain_adapter(world)
 	_test_anchor_debug_output(world, representative_anchor)
 	_test_debug_contract(world)
+	_test_debug_fill_orientation()
 	_test_runtime_debug_view(world)
 	_test_editor_dock_layout()
 
@@ -400,6 +401,32 @@ func _test_debug_contract(world: FoundationWorldData) -> void:
 	var layers_disabled_builder := registry.build(world)
 	_check(layers_disabled_builder.get_primitive_count() == 0, "disabled debug layers emit no geometry")
 	_check(registry.last_provider_invocations == 0, "disabled debug layers invoke no provider work")
+
+
+func _test_debug_fill_orientation() -> void:
+	var builder := FoundationDebugGeometryBuilder.new()
+	builder.add_filled_rect(Rect2(-8.0, -4.0, 16.0, 8.0))
+	builder.add_filled_polygon(PackedVector3Array([
+		Vector3(-6.0, 2.0, -3.0),
+		Vector3(6.0, 2.0, -3.0),
+		Vector3(4.0, 2.0, 5.0),
+		Vector3(-5.0, 2.0, 4.0),
+	]))
+	_check(
+		_debug_triangles_face_up(builder.triangle_vertices),
+		"debug fill triangles use Godot's upward-visible clockwise winding"
+	)
+
+
+func _debug_triangles_face_up(vertices: PackedVector3Array) -> bool:
+	if vertices.is_empty() or vertices.size() % 3 != 0:
+		return false
+	for triangle_start in range(0, vertices.size(), 3):
+		if (
+			vertices[triangle_start + 1] - vertices[triangle_start]
+		).cross(vertices[triangle_start + 2] - vertices[triangle_start]).y >= 0.0:
+			return false
+	return true
 
 
 func _test_runtime_debug_view(world: FoundationWorldData) -> void:

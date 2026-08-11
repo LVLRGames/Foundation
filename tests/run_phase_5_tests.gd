@@ -224,6 +224,12 @@ func _test_demo_contract() -> void:
 	_check(has_skip_diagnostic, "Phase 5 demo exposes skipped access-required or remainder parcels")
 	_check(debug_view.show_buildings, "Phase 5 demo exposes the building footprint/massing overlay")
 	_check(world_node.transform.basis.y.dot(Vector3.UP) > 0.999, "Phase 5 demo keeps generated geometry upright")
+	var fill_mesh_instance := debug_view.get_node("BatchedFills") as MeshInstance3D
+	var fill_vertices: PackedVector3Array = fill_mesh_instance.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	_check(
+		_debug_triangles_face_up(fill_vertices),
+		"Phase 5 city-demo fills are front-facing from above"
+	)
 	_check(
 		control_panel.offset_right <= 430.0 and control_panel.size.x <= 430.0
 		and is_equal_approx(control_panel.anchor_bottom, 1.0)
@@ -392,6 +398,17 @@ func _is_concave(boundary: PackedVector2Array) -> bool:
 		if (current - previous).cross(next - current) < 0.0:
 			return true
 	return false
+
+
+func _debug_triangles_face_up(vertices: PackedVector3Array) -> bool:
+	if vertices.is_empty() or vertices.size() % 3 != 0:
+		return false
+	for triangle_start in range(0, vertices.size(), 3):
+		if (
+			vertices[triangle_start + 1] - vertices[triangle_start]
+		).cross(vertices[triangle_start + 2] - vertices[triangle_start]).y >= 0.0:
+			return false
+	return true
 
 
 func _check(condition: bool, message: String) -> void:
