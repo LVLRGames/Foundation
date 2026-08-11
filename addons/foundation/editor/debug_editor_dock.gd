@@ -2,7 +2,7 @@
 class_name FoundationDebugEditorDock
 extends ScrollContainer
 
-## Editor controls expose disposable debug presentation and explicit Phase 4 parcel actions.
+## Editor controls expose disposable debug presentation and explicit parcel/building actions.
 
 var _editor_interface: EditorInterface
 var _content: VBoxContainer
@@ -71,6 +71,7 @@ func _build_interface() -> void:
 		[&"road_validation", "Grading and topology validation warnings"],
 		[&"blocks", "Block outlines, fills, metrics, and diagnostics"],
 		[&"parcels", "Parcels, frontage, access state, and validation"],
+		[&"buildings", "Building footprints, primitive massing, and validation"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -108,6 +109,14 @@ func _build_interface() -> void:
 	clear_parcels.text = "Clear Generated Parcels"
 	clear_parcels.pressed.connect(_clear_parcels_pressed)
 	_content.add_child(clear_parcels)
+	var generate_buildings := Button.new()
+	generate_buildings.text = "Generate / Regenerate Buildings"
+	generate_buildings.pressed.connect(_generate_buildings_pressed)
+	_content.add_child(generate_buildings)
+	var clear_buildings := Button.new()
+	clear_buildings.text = "Clear Generated Buildings"
+	clear_buildings.pressed.connect(_clear_buildings_pressed)
+	_content.add_child(clear_buildings)
 
 
 func _connect_selection() -> void:
@@ -152,6 +161,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"road_validation"].button_pressed = _view.show_road_validation
 	_layer_toggles[&"blocks"].button_pressed = _view.show_blocks
 	_layer_toggles[&"parcels"].button_pressed = _view.show_parcels
+	_layer_toggles[&"buildings"].button_pressed = _view.show_buildings
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -202,6 +212,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"road_validation": _view.show_road_validation = value
 		&"blocks": _view.show_blocks = value
 		&"parcels": _view.show_parcels = value
+		&"buildings": _view.show_buildings = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -300,6 +311,15 @@ func _debug_selection_changed(index: int) -> void:
 					parcel.access_state, parcel.buildable, parcel.validation_state,
 					parcel.owning_chunks, parcel.owning_regions,
 				]
+			elif record is FoundationBuildingRecord:
+				var building := record as FoundationBuildingRecord
+				_selection_details.text = "%s\nParcel: %s\nBlock: %s\nFootprint: %.2f\nCoverage: %.3f / %.3f target\nFloors: %d\nHeight: %.2f\nFront road: %s\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					building.stable_id, building.parent_id, building.parent_block_id,
+					building.footprint_area, building.coverage_ratio,
+					building.target_coverage_ratio, building.floor_count, building.height,
+					building.primary_road_edge_id, building.validation_state,
+					building.owning_chunks, building.owning_regions,
+				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
 					record.stable_id, record.world_bounds, record.parent_id, record.layer_type,
@@ -320,11 +340,13 @@ func _generate_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var cleared_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
 	var result := FoundationParcelSubdivider.generate(world_node.world_data)
-	_status.text = "Parcel generation %s: %d generated, %d preserved." % [
+	_status.text = "Parcel generation %s: %d generated, %d preserved; %d downstream buildings cleared." % [
 		"completed" if result.success else "failed",
 		result.generated_parcel_count,
 		result.preserved_parcel_count,
+		cleared_buildings,
 	]
 	_populate_selection_options()
 
@@ -334,8 +356,34 @@ func _clear_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var removed_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
 	var removed := FoundationParcelSubdivider.clear_generated(world_node.world_data)
-	_status.text = "Cleared %d generated parcel record(s); authored parcels were preserved." % removed
+	_status.text = "Cleared %d generated parcel and %d downstream building record(s); authored records were preserved." % [removed, removed_buildings]
+	_populate_selection_options()
+
+
+func _generate_buildings_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var result := FoundationBuildingGenerator.generate(world_node.world_data)
+	_status.text = "Building generation %s: %d generated, %d preserved, %d parcels skipped." % [
+		"completed" if result.success else "failed",
+		result.generated_building_count,
+		result.preserved_building_count,
+		result.skipped_parcel_count,
+	]
+	_populate_selection_options()
+
+
+func _clear_buildings_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var removed := FoundationBuildingGenerator.clear_generated(world_node.world_data)
+	_status.text = "Cleared %d generated building record(s); authored buildings were preserved." % removed
 	_populate_selection_options()
 
 

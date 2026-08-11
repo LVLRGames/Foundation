@@ -64,6 +64,16 @@ extends Resource
 @export var parcel_fill_remainder := Color(1.0, 0.72, 0.30, 0.22)
 @export var parcel_fill_invalid := Color(0.94, 0.33, 0.31, 0.22)
 @export var parcel_fill_selected := Color(1.0, 1.0, 1.0, 0.28)
+@export var building_generated := Color("b39ddb")
+@export var building_locked := Color("ffee58")
+@export var building_overridden := Color("f48fb1")
+@export var building_invalid := Color("ef5350")
+@export var building_skipped := Color("ffb74d")
+@export var building_roof_generated := Color(0.70, 0.62, 0.86, 0.34)
+@export var building_roof_locked := Color(1.0, 0.93, 0.35, 0.38)
+@export var building_roof_overridden := Color(0.96, 0.56, 0.69, 0.38)
+@export var building_roof_invalid := Color(0.94, 0.33, 0.31, 0.40)
+@export var building_roof_selected := Color(1.0, 1.0, 1.0, 0.48)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -194,6 +204,26 @@ func color_for(purpose: StringName) -> Color:
 			return parcel_fill_invalid
 		&"parcel_fill_selected":
 			return parcel_fill_selected
+		&"building_generated":
+			return building_generated
+		&"building_locked":
+			return building_locked
+		&"building_overridden":
+			return building_overridden
+		&"building_invalid":
+			return building_invalid
+		&"building_skipped":
+			return building_skipped
+		&"building_roof_generated":
+			return building_roof_generated
+		&"building_roof_locked":
+			return building_roof_locked
+		&"building_roof_overridden":
+			return building_roof_overridden
+		&"building_roof_invalid":
+			return building_roof_invalid
+		&"building_roof_selected":
+			return building_roof_selected
 		&"selected":
 			return selected
 		&"relationship":
