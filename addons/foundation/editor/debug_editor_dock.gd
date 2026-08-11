@@ -72,6 +72,7 @@ func _build_interface() -> void:
 		[&"blocks", "Block outlines, fills, metrics, and diagnostics"],
 		[&"parcels", "Parcels, frontage, access state, and validation"],
 		[&"buildings", "Building footprints, primitive massing, and validation"],
+		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
 	]:
 		var toggle := CheckBox.new()
@@ -162,6 +163,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"blocks"].button_pressed = _view.show_blocks
 	_layer_toggles[&"parcels"].button_pressed = _view.show_parcels
 	_layer_toggles[&"buildings"].button_pressed = _view.show_buildings
+	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
 	_populate_selection_options()
@@ -213,6 +215,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"blocks": _view.show_blocks = value
 		&"parcels": _view.show_parcels = value
 		&"buildings": _view.show_buildings = value
+		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
 
@@ -228,8 +231,9 @@ func _debug_selection_changed(index: int) -> void:
 		"chunk":
 			_view.selected_chunk = selection["coordinate"]
 			var chunk := world_node.world_data.get_chunk(_view.selected_chunk)
-			_selection_details.text = "%s\nBounds: %s\nDirty: %s" % [
+			_selection_details.text = "%s\nBounds: %s\nDirty: %s\nRuntime: %d\nLOD: %d\nTransitions: %d" % [
 				chunk.stable_id, chunk.world_bounds, chunk.get_dirty_layers(),
+				chunk.runtime_state, chunk.runtime_lod_level, chunk.runtime_transition_serial,
 			]
 		"record":
 			_view.selected_record_id = selection["stable_id"]

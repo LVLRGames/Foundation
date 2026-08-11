@@ -120,13 +120,15 @@ func region_to_world_bounds(region: Vector2i) -> Rect2:
 
 func world_bounds_to_chunks(bounds: Rect2) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
+	var chunk_world_size := get_chunk_world_size()
 	var minimum := world_to_chunk(Vector3(bounds.position.x, 0.0, bounds.position.y))
-	var maximum_point := bounds.position
+	# Half-open bounds use ceil(end / chunk_size) - 1. This remains exact at
+	# large chunk-aligned coordinates where subtracting a tiny float epsilon does not.
+	var maximum := minimum
 	if bounds.size.x > 0.0:
-		maximum_point.x = bounds.end.x - 0.000001
+		maximum.x = ceili(bounds.end.x / chunk_world_size.x) - 1
 	if bounds.size.y > 0.0:
-		maximum_point.y = bounds.end.y - 0.000001
-	var maximum := world_to_chunk(Vector3(maximum_point.x, 0.0, maximum_point.y))
+		maximum.y = ceili(bounds.end.y / chunk_world_size.y) - 1
 	for chunk_y in range(minimum.y, maximum.y + 1):
 		for chunk_x in range(minimum.x, maximum.x + 1):
 			result.append(Vector2i(chunk_x, chunk_y))

@@ -10,6 +10,8 @@ Phase 4 parcel subdivision consumes canonical blocks and road provenance without
 
 Phase 5 building generation consumes buildable parcels and their frontage provenance without mutating any earlier layer; see [building_massing.md](building_massing.md).
 
+Phase 6 plans bounded chunk lifecycle and terrain visual LOD transitions without mutating spatial records or terrain arrays; see [chunk_streaming.md](chunk_streaming.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.
@@ -64,11 +66,11 @@ Cell flags currently include no-build, protected, and water. `TerrainSampler` co
 
 Terrain data records the generator and content-pack versions alongside the seed. Phase 0 does not implement save/load yet, but the reproducibility fields already have an authoritative home.
 
-## Dirty rebuilds and future streaming
+## Dirty rebuilds and Phase 6 streaming
 
 A cell edit marks its containing chunk. A vertex edit examines the four adjacent cells, so vertices shared by chunk edges or corners dirty all affected chunks. `FoundationTerrain.rebuild_dirty_chunks()` consumes that set and independently rebuilds those chunk views.
 
-`FoundationTerrainChunk.State` names the intended future lifecycle: Unloaded, DataOnly, ProxyLoaded, VisualLoaded, PhysicsLoaded, and GameplayActive. Phase 0 builds visual and physics views immediately for active demo chunks; it does not implement distance streaming, proxies, LOD, threaded jobs, or persistence.
+`FoundationTerrainChunk.State` mirrors the abstract Unloaded, DataOnly, ProxyLoaded, VisualLoaded, PhysicsLoaded, and GameplayActive lifecycle. Phase 6 now supplies deterministic Node-free interest planning, hysteresis, bounded transitions, terrain proxy/visual LOD presentation, and separable full-resolution collision. Threaded jobs and persistence remain outside the current contract.
 
 ## Phase 0 limitations
 
@@ -77,4 +79,4 @@ A cell edit marks its containing chunk. A vertex edit examines the four adjacent
 - The editor dock edits and generates a selected terrain node but does not persist generated runtime arrays into a scene or resource.
 - Terrain modification records the last semantic source per vertex; non-destructive multi-layer composition and authored-data persistence remain future work.
 - Surface rendering uses shared vertex colors rather than the final pixel-art texture/material library.
-- The full streaming state machine and all city-generation stages are explicitly outside Phase 0.
+- Phase 6 supplies the first deterministic streaming state machine; asynchronous loading, persistence, and production city HLOD remain later work.

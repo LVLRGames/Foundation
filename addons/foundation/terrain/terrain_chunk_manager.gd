@@ -16,6 +16,7 @@ signal chunks_rebuilt(chunks: Array[Vector2i])
 var terrain_data: FoundationTerrainData
 var _chunks: Dictionary = {}
 var _shared_fallback_material: StandardMaterial3D
+var _streaming_views_enabled := false
 
 
 func _ready() -> void:
@@ -23,7 +24,7 @@ func _ready() -> void:
 		generate_terrain()
 
 
-func generate_terrain() -> bool:
+func generate_terrain(build_all_views := true) -> bool:
 	if profile == null:
 		push_error("FoundationTerrain requires a FoundationTerrainProfile.")
 		return false
@@ -34,7 +35,9 @@ func generate_terrain() -> bool:
 
 	_clear_chunks()
 	terrain_data = FoundationTerrainGenerator.generate(profile)
-	rebuild_dirty_chunks()
+	_streaming_views_enabled = not build_all_views
+	if build_all_views:
+		rebuild_dirty_chunks()
 	terrain_generated.emit(terrain_data)
 	return true
 
@@ -43,17 +46,34 @@ func rebuild_dirty_chunks() -> int:
 	if terrain_data == null:
 		return 0
 	var dirty_chunks := terrain_data.take_dirty_chunks()
+	var rebuilt: Array[Vector2i] = []
 	for coordinate in dirty_chunks:
-		var chunk := _ensure_chunk(coordinate)
-		chunk.configure(
-			terrain_data,
-			coordinate,
-			_get_material(),
-			collision_enabled,
-			smooth_normals
-		)
-	chunks_rebuilt.emit(dirty_chunks)
-	return dirty_chunks.size()
+		if _streaming_views_enabled:
+			var streamed_chunk := get_chunk(coordinate)
+			if not is_instance_valid(streamed_chunk):
+				terrain_data.mark_chunk_dirty(coordinate)
+				continue
+			streamed_chunk.configure_streamed(
+				terrain_data,
+				coordinate,
+				_get_material(),
+				streamed_chunk.state,
+				streamed_chunk.visual_lod_level,
+				smooth_normals,
+				true
+			)
+		else:
+			var chunk := _ensure_chunk(coordinate)
+			chunk.configure(
+				terrain_data,
+				coordinate,
+				_get_material(),
+				collision_enabled,
+				smooth_normals
+			)
+		rebuilt.append(coordinate)
+	chunks_rebuilt.emit(rebuilt)
+	return rebuilt.size()
 
 
 func rebuild_all_chunks() -> int:
@@ -85,6 +105,37 @@ func get_loaded_chunk_coordinates() -> Array[Vector2i]:
 	return coordinates
 
 
+func apply_chunk_runtime_state(
+	coordinate: Vector2i,
+	runtime_state: FoundationChunkData.RuntimeState,
+	lod_level := -1
+) -> bool:
+	if terrain_data == null or not terrain_data.is_valid_chunk(coordinate):
+		return false
+	if runtime_state < FoundationChunkData.RuntimeState.PROXY_LOADED:
+		_unload_chunk(coordinate)
+		return true
+	var chunk := _ensure_chunk(coordinate)
+	chunk.configure_streamed(
+		terrain_data,
+		coordinate,
+		_get_material(),
+		runtime_state as FoundationTerrainChunk.State,
+		maxi(0, lod_level),
+		smooth_normals
+	)
+	terrain_data.clear_chunk_dirty(coordinate)
+	return true
+
+
+func apply_streaming_requests(requests: Array[FoundationChunkStreamingRequest]) -> int:
+	var applied := 0
+	for request in requests:
+		if apply_chunk_runtime_state(request.chunk_coordinate, request.to_state, request.to_lod):
+			applied += 1
+	return applied
+
+
 func _ensure_chunk(coordinate: Vector2i) -> FoundationTerrainChunk:
 	var existing := get_chunk(coordinate)
 	if is_instance_valid(existing):
@@ -93,6 +144,16 @@ func _ensure_chunk(coordinate: Vector2i) -> FoundationTerrainChunk:
 	_chunks[coordinate] = chunk
 	add_child(chunk)
 	return chunk
+
+
+func _unload_chunk(coordinate: Vector2i) -> void:
+	var chunk := get_chunk(coordinate)
+	if not is_instance_valid(chunk):
+		_chunks.erase(coordinate)
+		return
+	remove_child(chunk)
+	chunk.queue_free()
+	_chunks.erase(coordinate)
 
 
 func _clear_chunks() -> void:

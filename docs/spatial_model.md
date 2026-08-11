@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`. Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
 
 ## Coordinate conventions
 
@@ -132,7 +132,7 @@ Registration computes all chunks intersected by a record's half-open XZ bounds, 
 
 Internal dictionaries are not treated as ordered. No query scans all world records unless the caller explicitly requests `get_all_records()` for tooling/debugging.
 
-`FoundationChunkData` mirrors per-layer stable-ID references for manifests and generation scheduling. It is not a rendered chunk node and already exposes the future Unloaded/DataOnly/ProxyLoaded/VisualLoaded/PhysicsLoaded/GameplayActive state seam.
+`FoundationChunkData` mirrors per-layer stable-ID references for manifests and generation scheduling. It is not a rendered chunk node. Phase 6 implements its Unloaded/DataOnly/ProxyLoaded/VisualLoaded/PhysicsLoaded/GameplayActive runtime-state seam, serializable visual LOD, and transition serial while keeping presentation separate.
 
 ## Serialization seam
 

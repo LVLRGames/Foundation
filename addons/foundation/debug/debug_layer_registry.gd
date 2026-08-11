@@ -3,6 +3,8 @@ extends RefCounted
 
 ## Filterable provider registry with a true zero-work disabled path.
 
+const STREAMING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/streaming_debug_provider.gd")
+
 var enabled := true
 var last_provider_invocations := 0
 var _providers: Dictionary = {}
@@ -65,3 +67,4 @@ func register_phase_1_defaults() -> void:
 	register_provider(FoundationBlockDebugProvider.new())
 	register_provider(FoundationParcelDebugProvider.new())
 	register_provider(FoundationBuildingDebugProvider.new())
+	register_provider(STREAMING_DEBUG_PROVIDER.new(), false)
