@@ -149,6 +149,8 @@ static func from_dict(
 				record = FoundationBlockRecord.from_dict(record_data)
 			FoundationParcelRecord.RECORD_KIND:
 				record = FoundationParcelRecord.from_dict(record_data)
+			FoundationBuildingRecord.RECORD_KIND:
+				record = FoundationBuildingRecord.from_dict(record_data)
 			_:
 				record = FoundationSpatialRecord.from_dict(record_data)
 		layer.register_record(record)

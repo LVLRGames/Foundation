@@ -50,6 +50,7 @@ show_road_candidates = false
 show_road_validation = true
 show_blocks = true
 show_parcels = true
+show_buildings = true
 show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -64,7 +65,7 @@ fov = 52.0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 412.0
-offset_bottom = 690.0
+offset_bottom = 710.0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin"]
 layout_mode = 2
@@ -77,11 +78,11 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Foundation Phase 4 — Deterministic Parcel Subdivision"
+text = "Foundation Phase 5 — Parcel-Aware Building Massing"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Content"]
 layout_mode = 2
-text = "Abstract parcels with road frontage only; no districts, buildings, parking, physical roads, traffic, navigation, or grading."
+text = "Node-free parcel footprints and primitive extrusions; no uses, facades, interiors, prefabs, parking, grading, or navigation."
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true
@@ -211,6 +212,12 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Parcel fills, frontage, access state, and validation"
+
+[node name="BuildingToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Building footprints, primitive massing, and validation"
 
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content"]
 unique_name_in_owner = true

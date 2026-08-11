@@ -10,6 +10,7 @@ var terrain_origin_cell := Vector2i(-64, -64)
 var road_result: FoundationRoadGenerationResult
 var block_result: FoundationBlockGenerationResult
 var parcel_result: FoundationParcelGenerationResult
+var building_result: FoundationBuildingGenerationResult
 
 
 func _ready() -> void:
@@ -21,6 +22,7 @@ func _ready() -> void:
 	road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
 	block_result = FoundationBlockExtractor.generate(world.world_data)
 	parcel_result = FoundationParcelSubdivider.generate(world.world_data)
+	building_result = FoundationBuildingGenerator.generate(world.world_data)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -31,6 +33,7 @@ func _ready() -> void:
 	debug_view.show_road_validation = %ValidationToggle.button_pressed
 	debug_view.show_blocks = %BlockToggle.button_pressed
 	debug_view.show_parcels = %ParcelToggle.button_pressed
+	debug_view.show_buildings = %BuildingToggle.button_pressed
 	debug_view.rebuild()
 	$Camera3D.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -275,6 +278,7 @@ func _bind_controls() -> void:
 	%ValidationToggle.toggled.connect(_layer_toggled.bind(&"road_validation"))
 	%BlockToggle.toggled.connect(_layer_toggled.bind(&"blocks"))
 	%ParcelToggle.toggled.connect(_layer_toggled.bind(&"parcels"))
+	%BuildingToggle.toggled.connect(_layer_toggled.bind(&"buildings"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -313,6 +317,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"road_validation": debug_view.show_road_validation = enabled
 		&"blocks": debug_view.show_blocks = enabled
 		&"parcels": debug_view.show_parcels = enabled
+		&"buildings": debug_view.show_buildings = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -336,10 +341,11 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 + Phase 3 + Phase 4")
+	%StageOptions.add_item("Full Phase 2 + Phase 3 + Phase 4 + Phase 5")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
+	%StageOptions.add_item("Building footprints + massing")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -349,6 +355,7 @@ func _configure_generation_controls() -> void:
 func _regenerate_selected_stage() -> void:
 	match %StageOptions.selected:
 		0:
+			FoundationBuildingGenerator.clear_generated(world.world_data)
 			FoundationParcelSubdivider.clear_generated(world.world_data)
 			_register_selected_patterns()
 			_generate_road_topology()
@@ -356,18 +363,24 @@ func _regenerate_selected_stage() -> void:
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
 			block_result = FoundationBlockExtractor.generate(world.world_data)
 			parcel_result = FoundationParcelSubdivider.generate(world.world_data)
+			building_result = FoundationBuildingGenerator.generate(world.world_data)
 		1:
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
 		2:
+			FoundationBuildingGenerator.clear_generated(world.world_data)
 			FoundationParcelSubdivider.clear_generated(world.world_data)
 			block_result = FoundationBlockExtractor.generate(world.world_data)
-		_:
+		3:
+			FoundationBuildingGenerator.clear_generated(world.world_data)
 			parcel_result = FoundationParcelSubdivider.generate(world.world_data)
+		_:
+			building_result = FoundationBuildingGenerator.generate(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
 
 
 func _clear_road_data() -> void:
+	FoundationBuildingGenerator.clear_generated(world.world_data)
 	FoundationParcelSubdivider.clear_generated(world.world_data)
 	FoundationRoadTopologyGenerator.clear_generated_road_data(world.world_data)
 	for edge in world.world_data.get_road_edges():
@@ -391,7 +404,7 @@ func _apply_selected_state() -> void:
 
 func _update_status() -> void:
 	var issue_count := road_result.validation_issues.size() if road_result != null else 0
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d debug" % [
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -401,5 +414,6 @@ func _update_status() -> void:
 		issue_count,
 		world.world_data.get_blocks().size(),
 		world.world_data.get_parcels().size(),
+		world.world_data.get_buildings().size(),
 		debug_view.last_primitive_count,
 	]
