@@ -229,7 +229,7 @@ func _test_demo_contract() -> void:
 	_check(has_access_example, "Phase 4 demo visibly includes an explicit access-required or remainder parcel")
 	_check(debug_view.show_parcels, "Phase 4 demo exposes the parcel/frontage overlay")
 	var before := _parcel_snapshot(world_node.world_data)
-	demo.get_node("UI/Margin/Panel/Content/StageControls/StageOptions").select(3)
+	demo.get_node("%StageOptions").select(3)
 	demo.call("_regenerate_selected_stage")
 	_check(_parcel_snapshot(world_node.world_data) == before, "Phase 4 demo same-seed parcel regeneration is stable")
 	demo.free()

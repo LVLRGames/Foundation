@@ -2,6 +2,9 @@ extends Node3D
 
 @onready var world: FoundationWorld = $FoundationWorld
 @onready var debug_view: FoundationDebugView = $FoundationWorld/FoundationDebugView
+@onready var camera: Camera3D = $Camera3D
+@onready var control_panel: Control = $UI/Margin
+@onready var panel_toggle_button: Button = %PanelToggleButton
 @onready var record_options: OptionButton = %RecordOptions
 @onready var status_label: Label = %StatusLabel
 
@@ -35,8 +38,16 @@ func _ready() -> void:
 	debug_view.show_parcels = %ParcelToggle.button_pressed
 	debug_view.show_buildings = %BuildingToggle.button_pressed
 	debug_view.rebuild()
-	$Camera3D.look_at(Vector3.ZERO, Vector3.UP)
+	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_H:
+			_toggle_control_panel()
+			get_viewport().set_input_as_handled()
 
 
 func _add_synthetic_records() -> void:
@@ -265,6 +276,7 @@ func _make_id(entity_type: StringName, parent_id: StringName, semantic_key: Stri
 
 
 func _bind_controls() -> void:
+	panel_toggle_button.pressed.connect(_toggle_control_panel)
 	%DebugToggle.toggled.connect(_debug_toggled)
 	%WorldToggle.toggled.connect(_layer_toggled.bind(&"world_bounds"))
 	%RegionToggle.toggled.connect(_layer_toggled.bind(&"regions"))
@@ -285,6 +297,11 @@ func _bind_controls() -> void:
 	%ClearRoadButton.pressed.connect(_clear_road_data)
 	%ApplyStateButton.pressed.connect(_apply_selected_state)
 	record_options.item_selected.connect(_record_selected)
+
+
+func _toggle_control_panel() -> void:
+	control_panel.visible = not control_panel.visible
+	panel_toggle_button.text = "Hide controls (H)" if control_panel.visible else "Show controls (H)"
 
 
 func _populate_record_options() -> void:

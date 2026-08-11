@@ -46,6 +46,8 @@ func _run() -> void:
 	_test_shared_mesh_border(first)
 	_test_dirty_chunk_propagation(first)
 	_test_meshing_is_read_only(first)
+	_test_mesh_orientation(first)
+	_test_demo_orientation()
 	_test_sampler(first)
 	_test_runtime_chunks(profile)
 
@@ -104,6 +106,63 @@ func _test_meshing_is_read_only(data: FoundationTerrainData) -> void:
 	_check(surfaces_before == data.cell_surfaces, "meshing does not mutate surface IDs")
 	_check(diagonals_before == data.cell_diagonals, "meshing does not mutate triangulation")
 	_check(revision_before == data.revision, "meshing does not mutate TerrainData revision")
+
+
+func _test_mesh_orientation(data: FoundationTerrainData) -> void:
+	var smooth_mesh := FoundationTerrainMesher.build_mesh(data, Vector2i.ZERO, true)
+	var smooth_arrays := smooth_mesh.surface_get_arrays(0)
+	var visual_vertices: PackedVector3Array = smooth_arrays[Mesh.ARRAY_VERTEX]
+	var visual_indices: PackedInt32Array = smooth_arrays[Mesh.ARRAY_INDEX]
+	var visual_faces_clockwise := true
+	for triangle_start in range(0, visual_indices.size(), 3):
+		var first := visual_vertices[visual_indices[triangle_start]]
+		var second := visual_vertices[visual_indices[triangle_start + 1]]
+		var third := visual_vertices[visual_indices[triangle_start + 2]]
+		if (second - first).cross(third - first).y >= 0.0:
+			visual_faces_clockwise = false
+			break
+	_check(visual_faces_clockwise, "visual terrain uses Godot's upward-visible clockwise winding")
+
+	var collision_faces := FoundationTerrainMesher.build_collision_faces(data, Vector2i.ZERO)
+	var collision_faces_clockwise := true
+	for triangle_start in range(0, collision_faces.size(), 3):
+		var normal := (
+			collision_faces[triangle_start + 1] - collision_faces[triangle_start]
+		).cross(collision_faces[triangle_start + 2] - collision_faces[triangle_start])
+		# Godot renders clockwise triangle winding as front-facing. With Foundation's
+		# XZ grid convention, an upward-visible front face has a negative cross Y.
+		if normal.y >= 0.0:
+			collision_faces_clockwise = false
+			break
+	_check(collision_faces_clockwise, "collision terrain matches the visual clockwise winding")
+
+	var smooth_normals: PackedVector3Array = smooth_arrays[Mesh.ARRAY_NORMAL]
+	var smooth_normals_up := true
+	for normal in smooth_normals:
+		if normal.y <= 0.0:
+			smooth_normals_up = false
+			break
+	_check(smooth_normals_up, "smooth terrain normals point upward")
+
+	var flat_mesh := FoundationTerrainMesher.build_mesh(data, Vector2i.ZERO, false)
+	var flat_normals: PackedVector3Array = flat_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+	var flat_normals_up := true
+	for normal in flat_normals:
+		if normal.y <= 0.0:
+			flat_normals_up = false
+			break
+	_check(flat_normals_up, "flat terrain normals point upward")
+
+
+func _test_demo_orientation() -> void:
+	var scene := load("res://demo/terrain_demo.tscn") as PackedScene
+	var demo := scene.instantiate()
+	var terrain := demo.get_node("FoundationTerrain") as FoundationTerrain
+	_check(
+		terrain.transform.basis.y.dot(Vector3.UP) > 0.999,
+		"terrain demo preserves the upward terrain basis"
+	)
+	demo.free()
 
 
 func _test_sampler(data: FoundationTerrainData) -> void:

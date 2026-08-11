@@ -120,6 +120,12 @@ func get_primitive_count() -> int:
 
 
 func _add_triangle(a: Vector3, b: Vector3, c: Vector3, purpose: StringName) -> void:
+	# Godot treats clockwise vertices as front-facing. Foundation debug fills live
+	# in the XZ plane, where their upward-visible winding has a negative cross Y.
+	if (b - a).cross(c - a).y > 0.0:
+		var swap := b
+		b = c
+		c = swap
 	triangle_vertices.append(a)
 	triangle_vertices.append(b)
 	triangle_vertices.append(c)

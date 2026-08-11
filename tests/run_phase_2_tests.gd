@@ -659,15 +659,15 @@ func _test_issue_9_demo_contract() -> void:
 		"Phase 2 demo exposes logical-road labels and abstract intersection markers"
 	)
 	_check(
-		demo.get_node_or_null("UI/Margin/Panel/Content/GenerationControls/SeedSpin") != null
-		and demo.get_node_or_null("UI/Margin/Panel/Content/StageControls/RegenerateButton") != null
-		and demo.get_node_or_null("UI/Margin/Panel/Content/StageControls/ClearRoadButton") != null,
+		demo.get_node_or_null("%SeedSpin") != null
+		and demo.get_node_or_null("%RegenerateButton") != null
+		and demo.get_node_or_null("%ClearRoadButton") != null,
 		"Phase 2 demo provides seed/profile, selected-stage regeneration, and clear controls"
 	)
 	var before := _road_graph_snapshot(data)
 	demo.call("_regenerate_selected_stage")
 	_check(_road_graph_snapshot(data) == before, "same-seed full demo regeneration reproduces identical graph records")
-	var stage_options := demo.get_node("UI/Margin/Panel/Content/StageControls/StageOptions") as OptionButton
+	var stage_options := demo.get_node("%StageOptions") as OptionButton
 	stage_options.select(1)
 	demo.call("_regenerate_selected_stage")
 	_check(_road_graph_snapshot(data) == before, "selected derived stage reproduces logical roads and intersections without rerouting")

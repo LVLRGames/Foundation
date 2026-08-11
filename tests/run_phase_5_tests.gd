@@ -208,6 +208,9 @@ func _test_demo_contract() -> void:
 	root.add_child(demo)
 	var world_node := demo.get_node("FoundationWorld") as FoundationWorld
 	var debug_view := demo.get_node("FoundationWorld/FoundationDebugView") as FoundationDebugView
+	var camera := demo.get_node("Camera3D") as Camera3D
+	var control_panel := demo.get_node("UI/Margin") as Control
+	var scroll := demo.get_node("UI/Margin/Panel/Scroll") as ScrollContainer
 	var has_concave_parent := false
 	for building in world_node.world_data.get_buildings():
 		var parcel := world_node.world_data.get_record(building.parent_id) as FoundationParcelRecord
@@ -220,8 +223,35 @@ func _test_demo_contract() -> void:
 	_check(has_concave_parent, "Phase 5 demo includes parcel-aware massing within the concave-block fixture")
 	_check(has_skip_diagnostic, "Phase 5 demo exposes skipped access-required or remainder parcels")
 	_check(debug_view.show_buildings, "Phase 5 demo exposes the building footprint/massing overlay")
+	_check(world_node.transform.basis.y.dot(Vector3.UP) > 0.999, "Phase 5 demo keeps generated geometry upright")
+	var fill_mesh_instance := debug_view.get_node("BatchedFills") as MeshInstance3D
+	var fill_vertices: PackedVector3Array = fill_mesh_instance.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	_check(
+		_debug_triangles_face_up(fill_vertices),
+		"Phase 5 city-demo fills are front-facing from above"
+	)
+	_check(
+		control_panel.offset_right <= 430.0 and control_panel.size.x <= 430.0
+		and is_equal_approx(control_panel.anchor_bottom, 1.0)
+		and is_equal_approx(control_panel.offset_bottom, -16.0)
+		and scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED,
+		"Phase 5 demo uses a narrow viewport-height scrolling control panel"
+	)
+	_check(
+		camera.has_method("movement_direction") and camera.has_method("apply_look_delta"),
+		"Phase 5 demo exposes a reusable fly camera"
+	)
+	var initial_rotation := camera.rotation
+	camera.call("apply_look_delta", Vector2(20.0, -10.0))
+	_check(camera.rotation != initial_rotation, "fly camera applies mouse-look input")
+	var fly_direction: Vector3 = camera.call("movement_direction", Vector3(0.0, 0.0, -1.0))
+	_check(is_equal_approx(fly_direction.length(), 1.0), "fly camera produces normalized movement")
+	var panel_was_visible := control_panel.visible
+	demo.call("_toggle_control_panel")
+	_check(control_panel.visible != panel_was_visible, "Phase 5 controls can be hidden to inspect the city")
+	demo.call("_toggle_control_panel")
 	var before := _building_snapshot(world_node.world_data)
-	demo.get_node("UI/Margin/Panel/Content/StageControls/StageOptions").select(4)
+	demo.get_node("%StageOptions").select(4)
 	demo.call("_regenerate_selected_stage")
 	_check(_building_snapshot(world_node.world_data) == before, "Phase 5 demo same-seed building regeneration is stable")
 	demo.free()
@@ -368,6 +398,17 @@ func _is_concave(boundary: PackedVector2Array) -> bool:
 		if (current - previous).cross(next - current) < 0.0:
 			return true
 	return false
+
+
+func _debug_triangles_face_up(vertices: PackedVector3Array) -> bool:
+	if vertices.is_empty() or vertices.size() % 3 != 0:
+		return false
+	for triangle_start in range(0, vertices.size(), 3):
+		if (
+			vertices[triangle_start + 1] - vertices[triangle_start]
+		).cross(vertices[triangle_start + 2] - vertices[triangle_start]).y >= 0.0:
+			return false
+	return true
 
 
 func _check(condition: bool, message: String) -> void:

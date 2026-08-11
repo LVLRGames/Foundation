@@ -13,8 +13,10 @@ District/use assignment, addresses, facades, interiors, prefabs, production buil
 3. Select a seed/profile and enable any combination of downtown-grid, suburban-loop, and rural terrain-following pattern areas.
 4. Toggle topology, routing-cost, candidate, validation, block, parcel/frontage, and building-massing overlays.
 5. Inspect stable pattern, node, edge, logical-road, intersection, block, parcel, or building records and exercise authorship states.
+6. Hold the right mouse button to look around; use **WASD** to fly, **Q/E** to descend/ascend, **Shift** to boost, and the mouse wheel to adjust speed.
+7. Press **H** or use the top-right button to hide/show the compact scrolling control panel while inspecting the city.
 
-The demo generates a signed-origin terrain, Phase 2 roads, Phase 3 blocks, Phase 4 parcels, and Phase 5 footprints/massing. It includes a concave L-shaped block, rectangular parcelized blocks, an open component that produces no false block, and a small access-required fixture that is explicitly skipped by building generation. It covers stable regeneration, frontage/corner setbacks, positive and negative ownership, validation, inspection, and authorship controls.
+The demo generates a signed-origin terrain, Phase 2 roads, Phase 3 blocks, Phase 4 parcels, and Phase 5 footprints/massing. It keeps terrain and debug geometry upright in Godot's Y-up world, includes a concave L-shaped block, rectangular parcelized blocks, an open component that produces no false block, and a small access-required fixture that is explicitly skipped by building generation. It covers stable regeneration, frontage/corner setbacks, positive and negative ownership, validation, inspection, and authorship controls.
 
 ## Locked spatial defaults
 

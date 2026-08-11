@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://c36o6pnyau758" path="res://addons/foundation/world/foundation_world.gd" id="2_world"]
 [ext_resource type="Script" uid="uid://bj5m5k1s64xhm" path="res://addons/foundation/debug/debug_view.gd" id="3_debug"]
 [ext_resource type="Script" uid="uid://4f3ace7ny4uh" path="res://addons/foundation/debug/debug_style.gd" id="4_qe148"]
+[ext_resource type="Script" uid="uid://dkg1ol2uj3k63" path="res://demo/fly_camera.gd" id="5_camera"]
 
 [sub_resource type="Environment" id="Environment_demo"]
 background_mode = 1
@@ -14,6 +15,16 @@ ambient_light_energy = 0.55
 
 [sub_resource type="Resource" id="Resource_2icbu"]
 script = ExtResource("4_qe148")
+building_generated = null
+building_locked = null
+building_overridden = null
+building_invalid = null
+building_skipped = null
+building_roof_generated = null
+building_roof_locked = null
+building_roof_overridden = null
+building_roof_invalid = null
+building_roof_selected = null
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
 bg_color = Color(0.035, 0.047, 0.063, 0.92)
@@ -30,11 +41,13 @@ corner_radius_bottom_left = 6
 [node name="SpatialModelDemo" type="Node3D" unique_id=2146724876]
 script = ExtResource("1_demo")
 
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1966203994]
+transform = Transform3D(0.8752432, -0.3236269, 0.35946485, 0, 0.74318254, 0.6690887, -0.4836831, -0.58561534, 0.6504654, 0, 0, 0)
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=645758760]
 environment = SubResource("Environment_demo")
 
 [node name="FoundationWorld" type="Node3D" parent="." unique_id=1836078059]
-transform = Transform3D(-1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("2_world")
 
 [node name="FoundationDebugView" type="Node3D" parent="FoundationWorld" unique_id=1705227353]
@@ -43,233 +56,257 @@ debug_enabled = false
 style = SubResource("Resource_2icbu")
 show_terrain_grid = true
 show_road_costs = true
-show_road_candidates = false
-show_road_validation = true
-show_blocks = true
-show_parcels = true
-show_buildings = true
-show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=810552552]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 430, 360)
 current = true
 fov = 52.0
 far = 1600.0
+script = ExtResource("5_camera")
+move_speed = 110.0
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1800431050]
 
-[node name="Margin" type="MarginContainer" parent="UI" unique_id=1417825176]
-offset_left = 16.0
+[node name="PanelToggleButton" type="Button" parent="UI" unique_id=478120098]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -174.0
 offset_top = 16.0
-offset_right = 926.0
-offset_bottom = 817.0
+offset_right = -16.0
+offset_bottom = 46.0
+grow_horizontal = 0
+text = "Hide controls (H)"
+
+[node name="Margin" type="MarginContainer" parent="UI" unique_id=1417825176]
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 56.0
+offset_right = 430.0
+offset_bottom = -16.0
+grow_vertical = 2
 size_flags_horizontal = 0
-size_flags_vertical = 0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin" unique_id=1876838013]
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBox_panel")
 
-[node name="Content" type="VBoxContainer" parent="UI/Margin/Panel" unique_id=273852239]
+[node name="Scroll" type="ScrollContainer" parent="UI/Margin/Panel" unique_id=191424712]
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="UI/Margin/Panel/Scroll" unique_id=273852239]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="Title" type="Label" parent="UI/Margin/Panel/Content" unique_id=328452493]
+[node name="Title" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=328452493]
 layout_mode = 2
-size_flags_horizontal = 0
-theme_override_font_sizes/font_size = 20
-text = "Foundation Phase 5 — Parcel-Aware Building Massing"
+theme_override_font_sizes/font_size = 18
+text = "Phase 5 — Building Massing"
 
-[node name="Scope" type="Label" parent="UI/Margin/Panel/Content" unique_id=1333384478]
+[node name="Scope" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=1333384478]
 layout_mode = 2
-size_flags_horizontal = 0
 text = "Node-free parcel footprints and primitive extrusions; no uses, facades, interiors, prefabs, parking, grading, or navigation."
+autowrap_mode = 2
 
-[node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content" unique_id=913024322]
+[node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=913024322]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Initializing world data..."
+autowrap_mode = 2
 
-[node name="GenerationControls" type="HBoxContainer" parent="UI/Margin/Panel/Content" unique_id=1950571785]
+[node name="GenerationControls" type="HBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=1950571785]
 layout_mode = 2
 
-[node name="SeedLabel" type="Label" parent="UI/Margin/Panel/Content/GenerationControls" unique_id=40482727]
+[node name="SeedLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content/GenerationControls" unique_id=40482727]
 layout_mode = 2
 text = "Seed"
 
-[node name="SeedSpin" type="SpinBox" parent="UI/Margin/Panel/Content/GenerationControls" unique_id=60325771]
+[node name="SeedSpin" type="SpinBox" parent="UI/Margin/Panel/Scroll/Content/GenerationControls" unique_id=60325771]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
 max_value = 2147483647.0
 value = 1337.0
 
-[node name="ProfileOptions" type="OptionButton" parent="UI/Margin/Panel/Content/GenerationControls" unique_id=874156451]
+[node name="ProfileOptions" type="OptionButton" parent="UI/Margin/Panel/Scroll/Content/GenerationControls" unique_id=874156451]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+fit_to_longest_item = false
 
-[node name="PatternLabel" type="Label" parent="UI/Margin/Panel/Content" unique_id=891028958]
+[node name="PatternLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=891028958]
 layout_mode = 2
 text = "Road-pattern test areas"
 
-[node name="PatternControls" type="HBoxContainer" parent="UI/Margin/Panel/Content" unique_id=1443689433]
+[node name="PatternControls" type="HBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=1443689433]
 layout_mode = 2
 
-[node name="DowntownPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls" unique_id=63141219]
+[node name="DowntownPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/PatternControls" unique_id=63141219]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Grid"
 
-[node name="SuburbanPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls" unique_id=1595434856]
+[node name="SuburbanPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/PatternControls" unique_id=1595434856]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Suburban"
 
-[node name="RuralPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Content/PatternControls" unique_id=855923058]
+[node name="RuralPatternToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/PatternControls" unique_id=855923058]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Rural"
 
-[node name="DebugToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1359719087]
+[node name="DebugToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1359719087]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Debug rendering enabled"
+text = "Debug rendering"
 
-[node name="WorldToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=160626185]
+[node name="WorldToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=160626185]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "World bounds"
 
-[node name="RegionToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1492315909]
+[node name="RegionToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1492315909]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Region bounds and IDs"
+text = "Regions and IDs"
 
-[node name="ChunkToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=124912437]
+[node name="ChunkToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=124912437]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Chunk boundaries, coordinates, and dirty state"
+text = "Chunks, coordinates, and dirty state"
 
-[node name="GridToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=498049209]
+[node name="GridToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=498049209]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "4 m terrain cell grid"
+text = "4 m terrain grid"
 
-[node name="RecordToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=721253224]
+[node name="RecordToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=721253224]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Sample record bounds and layer membership"
+text = "Sample record bounds"
 
-[node name="AnchorToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1152589184]
+[node name="AnchorToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1152589184]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Abstract city-anchor markers, IDs, and influence"
+text = "City anchors and influence"
 
-[node name="RoadToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1453380644]
+[node name="RoadToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1453380644]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Terrain-aware abstract road nodes, edges, costs, and slopes"
+text = "Road topology and slopes"
 
-[node name="RoadPlanningToggles" type="HBoxContainer" parent="UI/Margin/Panel/Content" unique_id=362529616]
+[node name="RoadPlanningToggles" type="HBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=362529616]
 layout_mode = 2
 
-[node name="CostToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles" unique_id=656451718]
+[node name="CostToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/RoadPlanningToggles" unique_id=656451718]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Cost heatmap"
 
-[node name="CandidateToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles" unique_id=438943846]
+[node name="CandidateToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/RoadPlanningToggles" unique_id=438943846]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Candidates"
 
-[node name="ValidationToggle" type="CheckBox" parent="UI/Margin/Panel/Content/RoadPlanningToggles" unique_id=1194329601]
+[node name="ValidationToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content/RoadPlanningToggles" unique_id=1194329601]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Warnings"
 
-[node name="BlockToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=2039296589]
+[node name="BlockToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=2039296589]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Canonical block outlines, concave fills, metrics, and diagnostics"
+text = "Blocks, metrics, and validation"
 
-[node name="ParcelToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1572062068]
+[node name="ParcelToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1572062068]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Parcel fills, frontage, access state, and validation"
+text = "Parcels, frontage, and validation"
 
-[node name="BuildingToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=1827630914]
+[node name="BuildingToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=1827630914]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Building footprints, primitive massing, and validation"
+text = "Building footprints and massing"
 
-[node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Content" unique_id=940581382]
+[node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=940581382]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Selected parent/child relationships"
+text = "Selected relationships"
 
-[node name="StageControls" type="HBoxContainer" parent="UI/Margin/Panel/Content" unique_id=187767941]
+[node name="StageControls" type="VBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=187767941]
 layout_mode = 2
 
-[node name="StageOptions" type="OptionButton" parent="UI/Margin/Panel/Content/StageControls" unique_id=2063373662]
+[node name="StageOptions" type="OptionButton" parent="UI/Margin/Panel/Scroll/Content/StageControls" unique_id=2063373662]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+fit_to_longest_item = false
 
-[node name="RegenerateButton" type="Button" parent="UI/Margin/Panel/Content/StageControls" unique_id=530431760]
+[node name="RegenerateButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/StageControls" unique_id=530431760]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Regenerate"
 
-[node name="ClearRoadButton" type="Button" parent="UI/Margin/Panel/Content/StageControls" unique_id=1514113106]
+[node name="ClearRoadButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/StageControls" unique_id=1514113106]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Clear generated pipeline"
 
-[node name="RecordLabel" type="Label" parent="UI/Margin/Panel/Content" unique_id=55055322]
+[node name="RecordLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=55055322]
 layout_mode = 2
 text = "Selected stable record ID"
 
-[node name="RecordOptions" type="OptionButton" parent="UI/Margin/Panel/Content" unique_id=706184332]
+[node name="RecordOptions" type="OptionButton" parent="UI/Margin/Panel/Scroll/Content" unique_id=706184332]
 unique_name_in_owner = true
 layout_mode = 2
+fit_to_longest_item = false
 
-[node name="AuthorshipControls" type="HBoxContainer" parent="UI/Margin/Panel/Content" unique_id=1378338113]
+[node name="AuthorshipControls" type="HBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=1378338113]
 layout_mode = 2
 
-[node name="StateOptions" type="OptionButton" parent="UI/Margin/Panel/Content/AuthorshipControls" unique_id=1027058703]
+[node name="StateOptions" type="OptionButton" parent="UI/Margin/Panel/Scroll/Content/AuthorshipControls" unique_id=1027058703]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+fit_to_longest_item = false
 
-[node name="ApplyStateButton" type="Button" parent="UI/Margin/Panel/Content/AuthorshipControls" unique_id=133060797]
+[node name="ApplyStateButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthorshipControls" unique_id=133060797]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Apply authorship state"
+text = "Apply state"
 
-[node name="RebuildButton" type="Button" parent="UI/Margin/Panel/Content" unique_id=1143728332]
+[node name="RebuildButton" type="Button" parent="UI/Margin/Panel/Scroll/Content" unique_id=1143728332]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Rebuild Disposable Debug View"
+text = "Rebuild debug view"
+
+[node name="CameraHelp" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=2116939398]
+layout_mode = 2
+text = "Fly camera: hold RMB to look | WASD move | Q/E down/up | Shift boost | wheel changes speed | H hides controls"
+autowrap_mode = 2

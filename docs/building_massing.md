@@ -72,7 +72,9 @@ The runtime demo and editor debug dock can:
 - toggle parcel and building overlays independently;
 - inspect stable parcel/block/frontage provenance, footprint area, coverage, floors, height, ownership, and validation;
 - exercise generated, locked, and overridden states;
-- confirm same-seed regeneration and downstream clearing behavior.
+- confirm same-seed regeneration and downstream clearing behavior;
+- fly through the generated city with RMB mouse look, WASD, Q/E, Shift boost, and wheel-adjustable speed;
+- hide or show a narrow viewport-height scrolling control panel with **H** or its persistent toggle button.
 
 ## Explicit Phase 5 exclusions
 
