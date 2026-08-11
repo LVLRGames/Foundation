@@ -134,6 +134,12 @@ func _test_authored_regeneration_and_serialization() -> void:
 	building.set_footprint(moved)
 	FoundationBuildingGenerator.generate(world)
 	_check(world.get_record(building.stable_id) == building and building.owning_chunks.has(Vector2i(3, 0)), "overridden building survives and refreshes authored spatial ownership")
+	var repaired_id: StringName
+	for candidate in world.get_buildings():
+		if candidate != building and candidate.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
+			repaired_id = candidate.stable_id
+	FoundationBuildingGenerator.generate(world)
+	_check(not String(repaired_id).is_empty() and world.get_record(repaired_id) is FoundationBuildingRecord, "authored building collision receives the same deterministic repair identity on regeneration")
 	var restored := FoundationWorldData.from_dict(world.to_dict())
 	_check(_building_snapshot(restored) == _building_snapshot(world), "typed building footprint, massing, provenance, state, and ownership serialize round-trip")
 	var typed := true
