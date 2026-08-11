@@ -8,6 +8,13 @@ extends Resource
 @export var region_bounds := Color("ce93d8")
 @export var chunk_clean := Color("64b5f6")
 @export var chunk_dirty := Color("ef5350")
+@export var streaming_unloaded := Color(0.18, 0.21, 0.25, 0.48)
+@export var streaming_data := Color(0.35, 0.45, 0.55, 0.52)
+@export var streaming_proxy := Color(0.20, 0.67, 0.67, 0.58)
+@export var streaming_visual_far := Color(0.25, 0.72, 0.93, 0.62)
+@export var streaming_visual_near := Color(0.40, 0.78, 0.45, 0.68)
+@export var streaming_physics := Color(1.0, 0.65, 0.24, 0.72)
+@export var streaming_gameplay := Color(0.94, 0.38, 0.70, 0.78)
 @export var terrain_grid := Color(0.45, 0.55, 0.62, 0.35)
 @export var record_generated := Color("81c784")
 @export var record_locked := Color("ffb74d")
@@ -88,6 +95,20 @@ func color_for(purpose: StringName) -> Color:
 			return region_bounds
 		&"chunk_dirty":
 			return chunk_dirty
+		&"streaming_unloaded":
+			return streaming_unloaded
+		&"streaming_data":
+			return streaming_data
+		&"streaming_proxy":
+			return streaming_proxy
+		&"streaming_visual_far":
+			return streaming_visual_far
+		&"streaming_visual_near":
+			return streaming_visual_near
+		&"streaming_physics":
+			return streaming_physics
+		&"streaming_gameplay":
+			return streaming_gameplay
 		&"terrain_grid":
 			return terrain_grid
 		&"record_generated":

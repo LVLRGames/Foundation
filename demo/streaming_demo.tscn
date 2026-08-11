@@ -1,0 +1,124 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://demo/streaming_demo.gd" id="1_demo"]
+[ext_resource type="Script" path="res://addons/foundation/world/foundation_world.gd" id="2_world"]
+[ext_resource type="Script" path="res://addons/foundation/debug/debug_view.gd" id="3_debug"]
+[ext_resource type="Script" path="res://addons/foundation/terrain/terrain_chunk_manager.gd" id="4_terrain"]
+[ext_resource type="Script" path="res://addons/foundation/terrain/terrain_profile.gd" id="5_profile"]
+[ext_resource type="Script" path="res://demo/fly_camera.gd" id="6_camera"]
+
+[sub_resource type="Environment" id="Environment_streaming"]
+background_mode = 1
+background_color = Color(0.055, 0.071, 0.09, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.72, 0.82, 1)
+ambient_light_energy = 0.6
+
+[sub_resource type="Resource" id="Resource_profile"]
+script = ExtResource("5_profile")
+grid_cells = Vector2i(256, 256)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+bg_color = Color(0.035, 0.047, 0.063, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.4, 0.55, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="StreamingDemo" type="Node3D"]
+script = ExtResource("1_demo")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_streaming")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -32, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 900.0
+
+[node name="FoundationWorld" type="Node3D" parent="."]
+script = ExtResource("2_world")
+world_bounds = Rect2(0, 0, 1024, 1024)
+region_chunks = Vector2i(2, 2)
+
+[node name="FoundationDebugView" type="Node3D" parent="FoundationWorld"]
+script = ExtResource("3_debug")
+show_world_bounds = false
+show_regions = false
+show_chunks = false
+show_records = false
+show_anchors = false
+show_road_topology = false
+show_road_validation = false
+show_blocks = false
+show_parcels = false
+show_buildings = false
+show_streaming = true
+show_relationships = false
+
+[node name="FoundationTerrain" type="Node3D" parent="."]
+script = ExtResource("4_terrain")
+profile = SubResource("Resource_profile")
+generate_on_ready = false
+smooth_normals = false
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(512, 190, 700)
+current = true
+far = 1800.0
+script = ExtResource("6_camera")
+move_speed = 150.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Margin" type="MarginContainer" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 420.0
+offset_bottom = 178.0
+
+[node name="Panel" type="PanelContainer" parent="UI/Margin"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_panel")
+
+[node name="Content" type="VBoxContainer" parent="UI/Margin/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Title" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Phase 6 — Chunk Streaming and LOD"
+
+[node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Initializing streaming..."
+
+[node name="Buttons" type="HBoxContainer" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+
+[node name="PauseToggle" type="CheckBox" parent="UI/Margin/Panel/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Pause"
+
+[node name="StepButton" type="Button" parent="UI/Margin/Panel/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Step"
+
+[node name="ResetButton" type="Button" parent="UI/Margin/Panel/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset"
+
+[node name="Help" type="Label" parent="UI/Margin/Panel/Content"]
+layout_mode = 2
+autowrap_mode = 2
+text = "RMB look | WASD move | Q/E down/up | Shift boost | wheel speed. Colored chunk states and terrain LOD follow the camera."

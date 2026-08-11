@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 5 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, deterministic city-block extraction, frontage-aware parcel subdivision, and parcel-aware building footprints with primitive massing. Buildings retain parcel, block, road-edge, and logical-road provenance; apply deterministic front/side/rear/corner setbacks; serialize stable footprint, coverage, floor, and extrusion data; preserve authored states; and use batched debug presentation.
+The current Phase 6 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, deterministic city-block extraction, frontage-aware parcel subdivision, parcel-aware primitive building massing, and deterministic chunk streaming with terrain visual LOD. Node-free interest planning preserves stable records and authorship, applies hysteresis and bounded one-step transitions, and keeps scene presentation disposable.
 
 District/use assignment, addresses, facades, interiors, prefabs, production building meshes/collision, physical road geometry/intersections, traffic/navigation, terrain grading or pads, parking, and vegetation are intentionally not implemented.
+
+## Run the Phase 6 streaming demo
+
+1. Open `demo/streaming_demo.tscn` in Godot 4.7 and run the scene.
+2. Hold RMB and use WASD plus Q/E to fly across the 8×8 terrain.
+3. Inspect the colored `Unloaded`/`Data`/`Proxy`/`Visual`/`Physics`/`Gameplay` chunk rings and LOD labels.
+4. Pause, step one bounded streaming update, or reset the runtime lifecycle from the compact panel.
+
+The camera is only a demo adapter. Core planning consumes Node-free `FoundationChunkInterest` data and is independent of rendering and frame timing.
 
 ## Run the Phase 5 demo
 
@@ -96,6 +105,18 @@ var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
 var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
 var signed_chunk_blocks := world_data.get_records_in_chunk(Vector2i(-1, 0), &"blocks")
+
+var streaming_profile := FoundationChunkStreamingProfile.new()
+var camera_interest := FoundationChunkInterest.new(&"primary_camera", Vector3.ZERO)
+var streaming_plan := FoundationChunkStreamingScheduler.build_plan(
+    world_data,
+    [camera_interest],
+    streaming_profile
+)
+var applied_transitions := FoundationChunkStreamingScheduler.apply_plan(
+    world_data,
+    streaming_plan
+)
 ```
 
 When using a scene-facing `FoundationWorld` node, call its `register_terrain_extent()` helper to expose the terrain footprint through the spatial index. The topology generator itself consumes the authoritative terrain arrays directly.
@@ -124,8 +145,9 @@ Terrain, anchors, roads, logical roads, blocks, and parcels remain authoritative
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_3_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_4_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_5_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_6_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/building_massing.md](docs/building_massing.md) for the Phase 5 footprint, setback, primitive-massing, regeneration, serialization, and debug contracts. The parcel contract remains in [docs/parcel_subdivision.md](docs/parcel_subdivision.md); earlier contracts remain in [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/chunk_streaming.md](docs/chunk_streaming.md) for the Phase 6 planner, lifecycle, LOD, terrain-presentation, and debug contracts. Building massing remains documented in [docs/building_massing.md](docs/building_massing.md); earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.

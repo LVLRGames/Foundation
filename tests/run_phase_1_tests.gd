@@ -98,6 +98,20 @@ func _test_coordinate_conversions(coordinates: FoundationCoordinateSystem) -> vo
 		coordinates.chunk_to_world_bounds(Vector2i(-1, 1)) == Rect2(-128.0, 128.0, 128.0, 128.0),
 		"default 32-cell chunks have exact 128 m bounds"
 	)
+	var positive_exact := coordinates.world_bounds_to_chunks(Rect2(0.0, 0.0, 1024.0, 1024.0))
+	_check(
+		positive_exact.size() == 64
+		and positive_exact.front() == Vector2i.ZERO
+		and positive_exact.back() == Vector2i(7, 7),
+		"large chunk-aligned half-open bounds do not spill across their maximum edge"
+	)
+	var negative_exact := coordinates.world_bounds_to_chunks(Rect2(-1024.0, -1024.0, 1024.0, 1024.0))
+	_check(
+		negative_exact.size() == 64
+		and negative_exact.front() == Vector2i(-8, -8)
+		and negative_exact.back() == Vector2i(-1, -1),
+		"large negative half-open bounds retain exact signed chunk coverage"
+	)
 	_check(coordinates.snap_1m(Vector3(1.49, 2.51, -1.51)) == Vector3(1.0, 3.0, -2.0), "1 m snapping is exact")
 	_check(coordinates.snap_2m(Vector3(1.1, 3.1, -3.1)) == Vector3(2.0, 4.0, -4.0), "2 m snapping is exact")
 	_check(coordinates.snap_4m(Vector3(2.1, 5.9, -6.1)) == Vector3(4.0, 4.0, -8.0), "4 m snapping is exact")

@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Abstract chunk metadata; never the same object as a rendered chunk node.
 
-const FORMAT_VERSION := 1
+const FORMAT_VERSION := 2
 
 enum GenerationState {
 	UNINITIALIZED,
@@ -26,6 +26,8 @@ var coordinate := Vector2i.ZERO
 var world_bounds := Rect2()
 var generation_state := GenerationState.UNINITIALIZED
 var runtime_state := RuntimeState.DATA_ONLY
+var runtime_lod_level := -1
+var runtime_transition_serial := 0
 var metadata: Dictionary = {}
 var _layer_record_ids: Dictionary = {}
 var _dirty_layers: Dictionary = {}
@@ -118,6 +120,8 @@ func to_dict() -> Dictionary:
 		"world_bounds": FoundationSpatialRecord._rect_to_dict(world_bounds),
 		"generation_state": generation_state,
 		"runtime_state": runtime_state,
+		"runtime_lod_level": runtime_lod_level,
+		"runtime_transition_serial": runtime_transition_serial,
 		"metadata": metadata.duplicate(true),
 		"layer_records": serialized_layers,
 		"dirty_layers": serialized_dirty_layers,
@@ -133,6 +137,8 @@ static func from_dict(data: Dictionary) -> FoundationChunkData:
 	chunk.stable_id = StringName(data.get("stable_id", String(chunk.stable_id)))
 	chunk.generation_state = int(data.get("generation_state", GenerationState.UNINITIALIZED)) as GenerationState
 	chunk.runtime_state = int(data.get("runtime_state", RuntimeState.DATA_ONLY)) as RuntimeState
+	chunk.runtime_lod_level = int(data.get("runtime_lod_level", -1))
+	chunk.runtime_transition_serial = int(data.get("runtime_transition_serial", 0))
 	chunk.metadata = data.get("metadata", {}).duplicate(true)
 	for layer_data: Dictionary in data.get("layer_records", []):
 		var layer_type := StringName(layer_data.get("layer_type", ""))

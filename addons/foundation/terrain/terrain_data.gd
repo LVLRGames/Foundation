@@ -231,6 +231,10 @@ func mark_chunk_dirty(chunk: Vector2i) -> void:
 		_dirty_chunks[chunk] = true
 
 
+func clear_chunk_dirty(chunk: Vector2i) -> void:
+	_dirty_chunks.erase(chunk)
+
+
 func mark_all_chunks_dirty() -> void:
 	var count := get_chunk_count()
 	for chunk_y in range(count.y):
