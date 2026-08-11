@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://c36o6pnyau758" path="res://addons/foundation/world/foundation_world.gd" id="2_world"]
 [ext_resource type="Script" uid="uid://bj5m5k1s64xhm" path="res://addons/foundation/debug/debug_view.gd" id="3_debug"]
 [ext_resource type="Script" uid="uid://4f3ace7ny4uh" path="res://addons/foundation/debug/debug_style.gd" id="4_qe148"]
-[ext_resource type="Script" path="res://demo/fly_camera.gd" id="5_camera"]
+[ext_resource type="Script" uid="uid://dkg1ol2uj3k63" path="res://demo/fly_camera.gd" id="5_camera"]
 
 [sub_resource type="Environment" id="Environment_demo"]
 background_mode = 1
@@ -15,6 +15,16 @@ ambient_light_energy = 0.55
 
 [sub_resource type="Resource" id="Resource_2icbu"]
 script = ExtResource("4_qe148")
+building_generated = null
+building_locked = null
+building_overridden = null
+building_invalid = null
+building_skipped = null
+building_roof_generated = null
+building_roof_locked = null
+building_roof_overridden = null
+building_roof_invalid = null
+building_roof_selected = null
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
 bg_color = Color(0.035, 0.047, 0.063, 0.92)
@@ -31,6 +41,9 @@ corner_radius_bottom_left = 6
 [node name="SpatialModelDemo" type="Node3D" unique_id=2146724876]
 script = ExtResource("1_demo")
 
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1966203994]
+transform = Transform3D(0.8752432, -0.3236269, 0.35946485, 0, 0.74318254, 0.6690887, -0.4836831, -0.58561534, 0.6504654, 0, 0, 0)
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=645758760]
 environment = SubResource("Environment_demo")
 
@@ -43,12 +56,6 @@ debug_enabled = false
 style = SubResource("Resource_2icbu")
 show_terrain_grid = true
 show_road_costs = true
-show_road_candidates = false
-show_road_validation = true
-show_blocks = true
-show_parcels = true
-show_buildings = true
-show_relationships = true
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=810552552]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 430, 360)
@@ -60,7 +67,7 @@ move_speed = 110.0
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1800431050]
 
-[node name="PanelToggleButton" type="Button" parent="UI"]
+[node name="PanelToggleButton" type="Button" parent="UI" unique_id=478120098]
 unique_name_in_owner = true
 anchors_preset = 1
 anchor_left = 1.0
@@ -73,13 +80,14 @@ grow_horizontal = 0
 text = "Hide controls (H)"
 
 [node name="Margin" type="MarginContainer" parent="UI" unique_id=1417825176]
+anchors_preset = 9
 anchor_bottom = 1.0
 offset_left = 16.0
 offset_top = 56.0
 offset_right = 430.0
 offset_bottom = -16.0
-size_flags_horizontal = 0
 grow_vertical = 2
+size_flags_horizontal = 0
 
 [node name="Panel" type="PanelContainer" parent="UI/Margin" unique_id=1876838013]
 layout_mode = 2
@@ -87,7 +95,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBox_panel")
 
-[node name="Scroll" type="ScrollContainer" parent="UI/Margin/Panel"]
+[node name="Scroll" type="ScrollContainer" parent="UI/Margin/Panel" unique_id=191424712]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -105,14 +113,14 @@ text = "Phase 5 — Building Massing"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=1333384478]
 layout_mode = 2
-autowrap_mode = 2
 text = "Node-free parcel footprints and primitive extrusions; no uses, facades, interiors, prefabs, parking, grading, or navigation."
+autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=913024322]
 unique_name_in_owner = true
 layout_mode = 2
-autowrap_mode = 2
 text = "Initializing world data..."
+autowrap_mode = 2
 
 [node name="GenerationControls" type="HBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=1950571785]
 layout_mode = 2
@@ -298,7 +306,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Rebuild debug view"
 
-[node name="CameraHelp" type="Label" parent="UI/Margin/Panel/Scroll/Content"]
+[node name="CameraHelp" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=2116939398]
 layout_mode = 2
-autowrap_mode = 2
 text = "Fly camera: hold RMB to look | WASD move | Q/E down/up | Shift boost | wheel changes speed | H hides controls"
+autowrap_mode = 2
