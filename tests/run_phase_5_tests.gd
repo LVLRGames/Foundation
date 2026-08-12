@@ -10,6 +10,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var baseline := _test_determinism_frontage_and_massing()
 	var world := baseline as FoundationWorldData
+	_test_compact_massing_limits()
 	_test_concave_corner_and_skips()
 	_test_negative_spatial_ownership()
 	_test_authored_regeneration_and_serialization()
@@ -60,6 +61,36 @@ func _test_determinism_frontage_and_massing() -> FoundationWorldData:
 	return first
 
 
+func _test_compact_massing_limits() -> void:
+	var boundary := PackedVector2Array([
+		Vector2(-110.0, -60.0), Vector2(110.0, -60.0),
+		Vector2(110.0, 60.0), Vector2(-110.0, 60.0),
+	])
+	var world := _make_world(5151)
+	_add_parcel_fixture(world, &"compact_limits", boundary)
+	var profile := FoundationBuildingGenerationProfile.new()
+	var result := FoundationBuildingGenerator.generate(world, profile)
+	var building := world.get_buildings()[0]
+	_check(
+		result.success
+		and building.frontage_span <= profile.maximum_frontage_span + profile.geometric_epsilon
+		and building.footprint_depth <= profile.maximum_footprint_depth + profile.geometric_epsilon
+		and building.footprint_aspect_ratio <= profile.maximum_footprint_aspect_ratio + profile.geometric_epsilon
+		and not building.long_form,
+		"default massing obeys frontage-span, depth, and aspect-ratio limits"
+	)
+	var long_world := _make_world(5152)
+	_add_parcel_fixture(long_world, &"long_form", boundary)
+	var long_profile := FoundationBuildingGenerationProfile.new()
+	long_profile.allow_long_form_massing = true
+	FoundationBuildingGenerator.generate(long_world, long_profile)
+	var long_building := long_world.get_buildings()[0]
+	_check(
+		not profile.allow_long_form_massing and long_building.long_form,
+		"long-form massing requires an explicit non-default profile opt-in"
+	)
+
+
 func _test_concave_corner_and_skips() -> void:
 	var world := _make_world(5201)
 	_add_parcel_fixture(world, &"concave", PackedVector2Array([
@@ -107,13 +138,11 @@ func _test_negative_spatial_ownership() -> void:
 	FoundationBuildingGenerator.generate(world)
 	var building := world.get_buildings()[0]
 	var has_negative := false
-	var has_positive := false
 	var indexed := true
 	for chunk in building.owning_chunks:
 		has_negative = has_negative or chunk.x < 0 or chunk.y < 0
-		has_positive = has_positive or chunk.x >= 0 and chunk.y >= 0
 		indexed = indexed and building in world.get_records_in_chunk(chunk, FoundationWorldData.BUILDING_LAYER)
-	_check(has_negative and has_positive and indexed, "signed building footprints are indexed in every owning chunk and region")
+	_check(has_negative and building.owning_chunks.size() > 1 and indexed, "signed compact building footprints are indexed in every owning chunk and region")
 
 
 func _test_authored_regeneration_and_serialization() -> void:

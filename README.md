@@ -2,7 +2,7 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 11 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, and deterministic typed authoring overrides with conflict-safe reapply and bounded undo/redo.
+The current Phase 11.1 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, frontage-led parcel subdivision with at most four opposing street-facing rows per block, compact primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, and deterministic typed authoring overrides with conflict-safe reapply and bounded undo/redo.
 
 Addresses, interiors, prefabs, production building/road/bridge/parking/public-space meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, utilities, and vegetation are intentionally not implemented.
 
@@ -70,7 +70,7 @@ The camera is only a demo adapter. Core planning consumes Node-free `FoundationC
 6. Hold the right mouse button to look around; use **WASD** to fly, **Q/E** to descend/ascend, **Shift** to boost, and the mouse wheel to adjust speed.
 7. Press **H** or use the top-right button to hide/show the compact scrolling control panel while inspecting the city.
 
-The demo generates a signed-origin terrain, Phase 2 roads, Phase 3 blocks, Phase 4 parcels, and Phase 5 footprints/massing. It keeps terrain and debug geometry upright in Godot's Y-up world, includes a concave L-shaped block, rectangular parcelized blocks, an open component that produces no false block, and a small access-required fixture that is explicitly skipped by building generation. It covers stable regeneration, frontage/corner setbacks, positive and negative ownership, validation, inspection, and authorship controls.
+The demo generates a signed-origin terrain, Phase 2 roads, Phase 3 blocks, Phase 4 parcels, and Phase 5 footprints/massing. It keeps terrain and debug geometry upright in Godot's Y-up world, includes a concave L-shaped block, rectangular parcelized blocks, an open component that produces no false block, and explicit access-required center land skipped by building generation. Default blocks use at most four real road-backed frontage rows; buildable parcels and massing are depth/span/aspect bounded, while long-form exceptions require an explicit profile opt-in. The demo covers stable regeneration, frontage/corner setbacks, positive and negative ownership, validation, inspection, and authorship controls.
 
 ## Locked spatial defaults
 

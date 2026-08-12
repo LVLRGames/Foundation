@@ -6,9 +6,9 @@ Phase 2 terrain-aware abstract road topology consumes these arrays without gradi
 
 Phase 3 block extraction consumes road centerlines without mutating terrain; see [block_extraction.md](block_extraction.md).
 
-Phase 4 parcel subdivision consumes canonical blocks and road provenance without mutating any earlier layer; see [parcel_subdivision.md](parcel_subdivision.md).
+Phase 4 parcel subdivision consumes canonical blocks and road provenance without mutating any earlier layer. The Phase 11.1 corrective contract caps generation at four opposing street-facing rows and preserves unreached centers as explicit non-buildable land; see [parcel_subdivision.md](parcel_subdivision.md).
 
-Phase 5 building generation consumes buildable parcels and their frontage provenance without mutating any earlier layer; see [building_massing.md](building_massing.md).
+Phase 5 building generation consumes buildable parcels and their frontage provenance without mutating any earlier layer. Phase 11.1 adds default footprint span/depth/aspect caps and an explicit long-form exception seam; see [building_massing.md](building_massing.md).
 
 Phase 6 plans bounded chunk lifecycle and terrain visual LOD transitions without mutating spatial records or terrain arrays; see [chunk_streaming.md](chunk_streaming.md).
 

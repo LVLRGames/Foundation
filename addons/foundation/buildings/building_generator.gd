@@ -136,6 +136,8 @@ static func _create_footprint(
 	for point in source_boundary:
 		maximum_depth = maxf(maximum_depth, (point - primary_a).dot(inward))
 	var rear_limit := maximum_depth - profile.rear_setback
+	if not profile.allow_long_form_massing:
+		rear_limit = minf(rear_limit, profile.front_setback + profile.maximum_footprint_depth)
 	if rear_limit <= profile.front_setback + profile.geometric_epsilon:
 		return PackedVector2Array()
 	var clip_extent := maxf(parcel.world_bounds.size.x, parcel.world_bounds.size.y) * 6.0 + 32.0
@@ -147,6 +149,15 @@ static func _create_footprint(
 	)
 	if components.is_empty():
 		return PackedVector2Array()
+	if not profile.allow_long_form_massing:
+		components = _clip_components(
+			components,
+			_frontage_span_window(primary_a, primary_b, profile.maximum_frontage_span, clip_extent),
+			profile,
+			result
+		)
+		if components.is_empty():
+			return PackedVector2Array()
 
 	var frontage_segments := _unique_frontage_segments(parcel)
 	for segment_index in frontage_segments:
@@ -164,9 +175,13 @@ static func _create_footprint(
 			return PackedVector2Array()
 
 	var footprint := _largest_component(components, profile)
+	if not profile.allow_long_form_massing:
+		footprint = _compact_component(footprint, primary_a, primary_b, profile, result)
 	var target_area := parcel.area * target_coverage
 	if absf(FoundationBlockRecord._signed_area(footprint)) > target_area + profile.geometric_epsilon:
 		footprint = _fit_coverage(footprint, target_area, profile, result)
+	if not profile.allow_long_form_massing:
+		footprint = _compact_component(footprint, primary_a, primary_b, profile, result)
 	return canonicalize_boundary(footprint, profile)
 
 
@@ -259,6 +274,15 @@ static func _create_building(
 	var second := parcel.boundary[(primary.parcel_boundary_segment_index + 1) % parcel.boundary.size()]
 	building.frontage_direction = -_inward_normal(first, second)
 	building.orientation_degrees = rad_to_deg((second - first).angle())
+	var oriented_extents := _oriented_extents(footprint, first, second)
+	building.frontage_span = float(oriented_extents["span"])
+	building.footprint_depth = float(oriented_extents["depth"])
+	building.footprint_aspect_ratio = _aspect_ratio(building.frontage_span, building.footprint_depth)
+	building.long_form = profile.allow_long_form_massing and (
+		building.frontage_span > profile.maximum_frontage_span + profile.geometric_epsilon
+		or building.footprint_depth > profile.maximum_footprint_depth + profile.geometric_epsilon
+		or building.footprint_aspect_ratio > profile.maximum_footprint_aspect_ratio + profile.geometric_epsilon
+	)
 	building.base_elevation = profile.base_elevation
 	building.floor_height = profile.floor_height
 	var height_floor_cap := maxi(1, floori(profile.maximum_building_height / profile.floor_height))
@@ -273,6 +297,8 @@ static func _create_building(
 	building.source_pass = SOURCE_PASS
 	building.source_version = profile.generator_version
 	building.tags = PackedStringArray(["phase_5", "building_footprint", "primitive_massing"])
+	if building.long_form:
+		building.tags.append("long_form_exception")
 	building.metadata = {
 		"footprint_key": boundary_key(footprint, profile),
 		"parent_parcel_kind": String(parcel.parcel_kind),
@@ -307,6 +333,111 @@ static func _depth_strip(
 		a + tangent * extent + inward * rear_depth,
 		a - tangent * extent + inward * rear_depth,
 	])
+
+
+static func _frontage_span_window(
+	a: Vector2,
+	b: Vector2,
+	maximum_span: float,
+	extent: float
+) -> PackedVector2Array:
+	var tangent := (b - a).normalized()
+	var inward := _inward_normal(a, b)
+	var center := (a + b) * 0.5
+	var half_span := maximum_span * 0.5
+	return PackedVector2Array([
+		center - tangent * half_span - inward * extent,
+		center + tangent * half_span - inward * extent,
+		center + tangent * half_span + inward * extent,
+		center - tangent * half_span + inward * extent,
+	])
+
+
+static func _compact_component(
+	boundary: PackedVector2Array,
+	frontage_a: Vector2,
+	frontage_b: Vector2,
+	profile: FoundationBuildingGenerationProfile,
+	result: FoundationBuildingGenerationResult
+) -> PackedVector2Array:
+	if boundary.size() < 3:
+		return PackedVector2Array()
+	var extents := _oriented_extents(boundary, frontage_a, frontage_b)
+	var minimum_tangent := float(extents["minimum_tangent"])
+	var maximum_tangent := float(extents["maximum_tangent"])
+	var minimum_depth := float(extents["minimum_depth"])
+	var maximum_depth := float(extents["maximum_depth"])
+	var span := maximum_tangent - minimum_tangent
+	var depth := maximum_depth - minimum_depth
+	if span <= profile.geometric_epsilon or depth <= profile.geometric_epsilon:
+		return PackedVector2Array()
+	var changed := false
+	if span > profile.maximum_frontage_span:
+		var center := (minimum_tangent + maximum_tangent) * 0.5
+		minimum_tangent = center - profile.maximum_frontage_span * 0.5
+		maximum_tangent = center + profile.maximum_frontage_span * 0.5
+		span = profile.maximum_frontage_span
+		changed = true
+	if depth > profile.maximum_footprint_depth:
+		maximum_depth = minimum_depth + profile.maximum_footprint_depth
+		depth = profile.maximum_footprint_depth
+		changed = true
+	if span > depth * profile.maximum_footprint_aspect_ratio:
+		var center := (minimum_tangent + maximum_tangent) * 0.5
+		var compact_span := depth * profile.maximum_footprint_aspect_ratio
+		minimum_tangent = center - compact_span * 0.5
+		maximum_tangent = center + compact_span * 0.5
+		changed = true
+	elif depth > span * profile.maximum_footprint_aspect_ratio:
+		maximum_depth = minimum_depth + span * profile.maximum_footprint_aspect_ratio
+		changed = true
+	if not changed:
+		return boundary
+	var tangent := (frontage_b - frontage_a).normalized()
+	var inward := _inward_normal(frontage_a, frontage_b)
+	var window := PackedVector2Array([
+		frontage_a + tangent * minimum_tangent + inward * minimum_depth,
+		frontage_a + tangent * maximum_tangent + inward * minimum_depth,
+		frontage_a + tangent * maximum_tangent + inward * maximum_depth,
+		frontage_a + tangent * minimum_tangent + inward * maximum_depth,
+	])
+	return _largest_component(_clip_components([boundary], window, profile, result), profile)
+
+
+static func _oriented_extents(
+	boundary: PackedVector2Array,
+	frontage_a: Vector2,
+	frontage_b: Vector2
+) -> Dictionary:
+	var tangent := (frontage_b - frontage_a).normalized()
+	var inward := _inward_normal(frontage_a, frontage_b)
+	var minimum_tangent := INF
+	var maximum_tangent := -INF
+	var minimum_depth := INF
+	var maximum_depth := -INF
+	for point in boundary:
+		var relative := point - frontage_a
+		var tangent_projection := relative.dot(tangent)
+		var depth_projection := relative.dot(inward)
+		minimum_tangent = minf(minimum_tangent, tangent_projection)
+		maximum_tangent = maxf(maximum_tangent, tangent_projection)
+		minimum_depth = minf(minimum_depth, depth_projection)
+		maximum_depth = maxf(maximum_depth, depth_projection)
+	return {
+		"minimum_tangent": minimum_tangent,
+		"maximum_tangent": maximum_tangent,
+		"minimum_depth": minimum_depth,
+		"maximum_depth": maximum_depth,
+		"span": maximum_tangent - minimum_tangent,
+		"depth": maximum_depth - minimum_depth,
+	}
+
+
+static func _aspect_ratio(first: float, second: float) -> float:
+	var shortest := minf(first, second)
+	if shortest <= 0.000001:
+		return 0.0
+	return maxf(first, second) / shortest
 
 
 static func _inward_half_plane(a: Vector2, b: Vector2, depth: float, extent: float) -> PackedVector2Array:
@@ -462,7 +593,7 @@ static func _set_layer_metadata(
 	result: FoundationBuildingGenerationResult
 ) -> void:
 	world.get_layer(FoundationWorldData.BUILDING_LAYER).metadata = {
-		"format_version": 1,
+		"format_version": 2,
 		"source_pass": String(SOURCE_PASS),
 		"generator_version": profile.generator_version,
 		"profile": profile.to_dict(),

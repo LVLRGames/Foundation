@@ -38,8 +38,9 @@ func append_debug(
 			builder.add_line(base_points[index], top_points[index], outline_purpose)
 		builder.add_text(
 			Vector3(building.label_point.x, top_height + 1.2, building.label_point.y),
-			"%s\nA %.1f | C %.2f\n%d floors | H %.1f" % [
+			"%s\nA %.1f | C %.2f\nS %.1f D %.1f R %.2f\n%d floors | H %.1f" % [
 				building.stable_id, building.footprint_area, building.coverage_ratio,
+				building.frontage_span, building.footprint_depth, building.footprint_aspect_ratio,
 				building.floor_count, building.height,
 			],
 			outline_purpose

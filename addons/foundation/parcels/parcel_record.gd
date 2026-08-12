@@ -3,7 +3,7 @@ extends FoundationSpatialRecord
 
 ## Canonical abstract parcel with road-frontage provenance. Owns no use or building data.
 
-const PARCEL_FORMAT_VERSION := 1
+const PARCEL_FORMAT_VERSION := 2
 const RECORD_KIND: StringName = &"parcel"
 const ENTITY_TYPE: StringName = &"parcel"
 const LAYER_TYPE: StringName = &"parcels"
@@ -36,6 +36,10 @@ var centroid := Vector2.ZERO
 var label_point := Vector2.ZERO
 var approximate_frontage_width := 0.0
 var approximate_depth := 0.0
+var approximate_aspect_ratio := 0.0
+var frontage_row_index := -1
+var source_block_segment_index := -1
+var long_form := false
 var validation_state: StringName = VALID
 var validation_messages := PackedStringArray()
 
@@ -94,6 +98,7 @@ func refresh_frontage() -> void:
 	frontage_logical_road_ids.sort_custom(_string_name_less)
 	approximate_frontage_width = frontage_length
 	approximate_depth = area / frontage_length if frontage_length > 0.000001 else 0.0
+	approximate_aspect_ratio = _aspect_ratio(approximate_frontage_width, approximate_depth)
 
 
 func to_dict() -> Dictionary:
@@ -127,6 +132,10 @@ func to_dict() -> Dictionary:
 	data["label_point"] = {"x": label_point.x, "y": label_point.y}
 	data["approximate_frontage_width"] = approximate_frontage_width
 	data["approximate_depth"] = approximate_depth
+	data["approximate_aspect_ratio"] = approximate_aspect_ratio
+	data["frontage_row_index"] = frontage_row_index
+	data["source_block_segment_index"] = source_block_segment_index
+	data["long_form"] = long_form
 	data["validation_state"] = String(validation_state)
 	data["validation_messages"] = Array(validation_messages)
 	return data
@@ -157,6 +166,13 @@ static func from_dict(data: Dictionary) -> FoundationParcelRecord:
 	parcel.perimeter = float(data.get("perimeter", parcel.perimeter))
 	parcel.approximate_frontage_width = float(data.get("approximate_frontage_width", parcel.frontage_length))
 	parcel.approximate_depth = float(data.get("approximate_depth", parcel.approximate_depth))
+	parcel.approximate_aspect_ratio = float(data.get(
+		"approximate_aspect_ratio",
+		_aspect_ratio(parcel.approximate_frontage_width, parcel.approximate_depth)
+	))
+	parcel.frontage_row_index = int(data.get("frontage_row_index", -1))
+	parcel.source_block_segment_index = int(data.get("source_block_segment_index", -1))
+	parcel.long_form = bool(data.get("long_form", false))
 	var centroid_data: Dictionary = data.get("centroid", {})
 	parcel.centroid = Vector2(float(centroid_data.get("x", parcel.centroid.x)), float(centroid_data.get("y", parcel.centroid.y)))
 	var label_data: Dictionary = data.get("label_point", {})
@@ -168,3 +184,10 @@ static func from_dict(data: Dictionary) -> FoundationParcelRecord:
 
 static func _string_name_less(a: StringName, b: StringName) -> bool:
 	return String(a) < String(b)
+
+
+static func _aspect_ratio(width: float, depth: float) -> float:
+	var shortest := minf(width, depth)
+	if shortest <= 0.000001:
+		return 0.0
+	return maxf(width, depth) / shortest

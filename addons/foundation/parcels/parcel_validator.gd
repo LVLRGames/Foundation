@@ -44,8 +44,31 @@ static func validate(
 			_add_issue(issues, parcel, &"buildable_landlocked", FoundationParcelValidationIssue.SEVERITY_ERROR, "Buildable parcel lacks required road frontage.")
 		if parcel.approximate_depth < active_profile.minimum_depth and parcel.parcel_kind != FoundationParcelRecord.KIND_REMAINDER:
 			_add_issue(issues, parcel, &"insufficient_depth", FoundationParcelValidationIssue.SEVERITY_WARNING, "Parcel is below minimum approximate depth.")
-		if parcel.approximate_depth > active_profile.maximum_depth and parcel.parcel_kind != FoundationParcelRecord.KIND_REMAINDER:
+		if (
+			parcel.approximate_depth > active_profile.maximum_depth
+			and parcel.parcel_kind != FoundationParcelRecord.KIND_REMAINDER
+			and not (active_profile.allow_long_form_parcels and parcel.long_form)
+		):
 			_add_issue(issues, parcel, &"excessive_depth", FoundationParcelValidationIssue.SEVERITY_WARNING, "Parcel exceeds maximum approximate depth.")
+		if (
+			parcel.approximate_aspect_ratio > active_profile.maximum_buildable_aspect_ratio
+			and parcel.parcel_kind != FoundationParcelRecord.KIND_REMAINDER
+			and not (active_profile.allow_long_form_parcels and parcel.long_form)
+		):
+			_add_issue(issues, parcel, &"excessive_aspect_ratio", FoundationParcelValidationIssue.SEVERITY_WARNING, "Parcel exceeds the compact buildable aspect-ratio limit.")
+		if (
+			parcel.buildable
+			and parcel.source_pass == FoundationParcelSubdivider.SOURCE_PASS
+			and parcel.source_version >= 2
+			and parcel.frontage_row_index < 0
+		):
+			_add_issue(issues, parcel, &"buildable_without_frontage_row", FoundationParcelValidationIssue.SEVERITY_ERROR, "Buildable parcel is not assigned to a road-backed frontage row.")
+		if parcel.frontage_row_index >= active_profile.maximum_frontage_rows:
+			_add_issue(issues, parcel, &"frontage_row_limit_exceeded", FoundationParcelValidationIssue.SEVERITY_ERROR, "Parcel exceeds the configured frontage-row limit.")
+		if parcel.frontage_row_index >= 0 and parcel.source_block_segment_index < 0:
+			_add_issue(issues, parcel, &"missing_frontage_row_provenance", FoundationParcelValidationIssue.SEVERITY_ERROR, "Frontage-row parcel lacks its source block-boundary segment.")
+		if parcel.long_form and not active_profile.allow_long_form_parcels:
+			_add_issue(issues, parcel, &"unapproved_long_form_parcel", FoundationParcelValidationIssue.SEVERITY_ERROR, "Long-form parcel is present while long-form generation is disabled.")
 		for frontage in parcel.frontage_references:
 			var edge := world.get_record(frontage.road_edge_id) as FoundationRoadEdge
 			if edge == null:
@@ -58,8 +81,17 @@ static func validate(
 		if block_parcels.is_empty():
 			continue
 		var parcel_area := 0.0
+		var frontage_rows: Dictionary = {}
 		for parcel: FoundationParcelRecord in block_parcels:
 			parcel_area += parcel.area
+			if parcel.frontage_row_index >= 0:
+				frontage_rows[parcel.frontage_row_index] = true
+		if frontage_rows.size() > active_profile.maximum_frontage_rows:
+			issues.append(FoundationParcelValidationIssue.new(
+				&"frontage_row_limit_exceeded", FoundationParcelValidationIssue.SEVERITY_ERROR,
+				&"", block.stable_id, "Block contains more than the configured number of frontage rows.",
+				{"frontage_row_count": frontage_rows.size()}
+			))
 		for first_index in range(block_parcels.size()):
 			for second_index in range(first_index + 1, block_parcels.size()):
 				var first := block_parcels[first_index] as FoundationParcelRecord
