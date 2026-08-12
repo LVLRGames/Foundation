@@ -38,7 +38,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 8. Modular facade and building grammar
 9. District generation
 10. Terrain grading for roads, pads, and bridges (implemented in Phase 9)
-11. Parking and public features
+11. Parking and public features (implemented in Phase 10)
 12. Full authoring tools
 13. Selective interiors
 14. Advanced roads and traffic metadata
@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, and Phase 8 `districts`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, Phase 8 `districts`, and Phase 10 `parking_facilities` plus `public_features`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Phase 10 records and lineage are documented in [parking_public_features.md](parking_public_features.md). Overrides remain separate from raw generator layers; the complete authored override editor is Phase 11.
 
 ## Coordinate conventions
 

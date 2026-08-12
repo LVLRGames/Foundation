@@ -111,6 +111,25 @@ extends Resource
 @export var grading_fill := Color("66bb6a")
 @export var grading_warning := Color("ffca28")
 @export var grading_error := Color("f44336")
+@export var parking_generated := Color("42a5f5")
+@export var parking_locked := Color("ffee58")
+@export var parking_overridden := Color("f48fb1")
+@export var parking_invalid := Color("f44336")
+@export var parking_warning := Color("ffb74d")
+@export var parking_fill := Color(0.26, 0.65, 0.96, 0.24)
+@export var parking_stall := Color("e3f2fd")
+@export var parking_accessible := Color("ffee58")
+@export var parking_access := Color("80deea")
+@export var public_feature_park := Color("66bb6a")
+@export var public_feature_plaza := Color("ffca28")
+@export var public_feature_transit := Color("26c6da")
+@export var public_feature_civic := Color("ab47bc")
+@export var public_feature_locked := Color("ffee58")
+@export var public_feature_overridden := Color("f48fb1")
+@export var public_feature_invalid := Color("f44336")
+@export var public_feature_warning := Color("ffb74d")
+@export var public_feature_fill := Color(0.40, 0.73, 0.42, 0.26)
+@export var public_feature_service := Color(0.40, 0.73, 0.42, 0.22)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -339,6 +358,50 @@ func color_for(purpose: StringName) -> Color:
 			return grading_error
 		&"grading_label":
 			return label
+		&"parking_generated":
+			return parking_generated
+		&"parking_locked":
+			return parking_locked
+		&"parking_overridden":
+			return parking_overridden
+		&"parking_invalid":
+			return parking_invalid
+		&"parking_warning":
+			return parking_warning
+		&"parking_fill":
+			return parking_fill
+		&"parking_stall":
+			return parking_stall
+		&"parking_accessible":
+			return parking_accessible
+		&"parking_access":
+			return parking_access
+		&"parking_fill_selected":
+			return selected
+		&"public_feature_park", &"public_feature_playground":
+			return public_feature_park
+		&"public_feature_plaza":
+			return public_feature_plaza
+		&"public_feature_transit_stop":
+			return public_feature_transit
+		&"public_feature_civic_marker", &"public_feature_landmark_site":
+			return public_feature_civic
+		&"public_feature_locked":
+			return public_feature_locked
+		&"public_feature_overridden":
+			return public_feature_overridden
+		&"public_feature_invalid":
+			return public_feature_invalid
+		&"public_feature_warning":
+			return public_feature_warning
+		&"public_feature_fill":
+			return public_feature_fill
+		&"public_feature_fill_selected":
+			return selected
+		&"public_feature_service":
+			return public_feature_service
+		&"public_feature_anchor_link":
+			return relationship
 		&"selected":
 			return selected
 		&"relationship":

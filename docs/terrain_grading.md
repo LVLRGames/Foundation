@@ -46,7 +46,7 @@ Phase 9 does not implement:
 
 - production road, curb, sidewalk, driveway, foundation, retaining-wall, tunnel, or bridge meshes, materials, or collision;
 - bridge supports, structural engineering, or final clearance certification;
-- parking or public-feature placement (next roadmap phase);
+- production parking/public-space geometry; abstract parking and public-feature placement is implemented in Phase 10;
 - addresses, traffic/lane simulation, navigation, vegetation, utilities, interiors, or production building rendering;
 - background jobs, a persistence backend, migration framework, or non-destructive terrain-layer compositing.
 

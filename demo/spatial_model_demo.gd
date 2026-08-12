@@ -17,6 +17,7 @@ var building_result: FoundationBuildingGenerationResult
 var facade_result: FoundationFacadeGenerationResult
 var district_result: FoundationDistrictGenerationResult
 var grading_result: FoundationTerrainGradingResult
+var site_feature_result: FoundationSiteFeatureGenerationResult
 
 
 func _ready() -> void:
@@ -34,6 +35,7 @@ func _ready() -> void:
 	grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
 	if grading_result.success:
 		grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
+	site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -48,6 +50,8 @@ func _ready() -> void:
 	debug_view.show_facades = %FacadeToggle.button_pressed
 	debug_view.show_districts = %DistrictToggle.button_pressed
 	debug_view.show_terrain_grading = %GradingToggle.button_pressed
+	debug_view.show_parking_facilities = %ParkingToggle.button_pressed
+	debug_view.show_public_features = %PublicFeatureToggle.button_pressed
 	debug_view.rebuild()
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -166,8 +170,19 @@ func _add_synthetic_records() -> void:
 	)
 	highway_entrance.metadata = {"display_name": "Northwest Highway Entrance"}
 	highway_entrance.source_pass = &"phase_2_demo_fixture"
+	var public_square := FoundationCityAnchor.create(
+		data.metadata,
+		FoundationCityAnchor.CATEGORY_PUBLIC_SQUARE,
+		Vector3(-72.0, 0.0, -48.0),
+		"phase-10-public-square",
+		36.0,
+		0.85
+	)
+	public_square.metadata = {"display_name": "Phase 10 Public Square"}
+	public_square.source_pass = &"phase_10_demo_fixture"
 	data.register_record(commercial_center)
 	data.register_record(highway_entrance)
+	data.register_record(public_square)
 	data.mark_layer_dirty(&"sample", Rect2(-4.0, -4.0, 8.0, 8.0))
 
 
@@ -305,6 +320,8 @@ func _bind_controls() -> void:
 	%FacadeToggle.toggled.connect(_layer_toggled.bind(&"facades"))
 	%DistrictToggle.toggled.connect(_layer_toggled.bind(&"districts"))
 	%GradingToggle.toggled.connect(_layer_toggled.bind(&"terrain_grading"))
+	%ParkingToggle.toggled.connect(_layer_toggled.bind(&"parking_facilities"))
+	%PublicFeatureToggle.toggled.connect(_layer_toggled.bind(&"public_features"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -352,6 +369,8 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"facades": debug_view.show_facades = enabled
 		&"districts": debug_view.show_districts = enabled
 		&"terrain_grading": debug_view.show_terrain_grading = enabled
+		&"parking_facilities": debug_view.show_parking_facilities = enabled
+		&"public_features": debug_view.show_public_features = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -375,7 +394,7 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 through Phase 9")
+	%StageOptions.add_item("Full Phase 2 through Phase 10")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
@@ -383,6 +402,7 @@ func _configure_generation_controls() -> void:
 	%StageOptions.add_item("Modular facade grammar")
 	%StageOptions.add_item("District generation + use policy")
 	%StageOptions.add_item("Terrain grading: roads, pads, bridges")
+	%StageOptions.add_item("Parking and public features")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -390,9 +410,11 @@ func _configure_generation_controls() -> void:
 
 
 func _regenerate_selected_stage() -> void:
-	if not _revert_grading_if_applied():
+	if %StageOptions.selected != 8 and not _revert_grading_if_applied():
 		status_label.text = "Regeneration refused: applied terrain grading no longer matches the terrain."
 		return
+	if %StageOptions.selected != 8:
+		FoundationSiteFeatureGenerator.clear_generated(world.world_data)
 	match %StageOptions.selected:
 		0:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
@@ -411,6 +433,7 @@ func _regenerate_selected_stage() -> void:
 			grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
 			if grading_result.success:
 				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
+			site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
 		1:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
@@ -434,10 +457,12 @@ func _regenerate_selected_stage() -> void:
 			facade_result = FoundationFacadeGenerator.generate(world.world_data)
 		6:
 			district_result = FoundationDistrictGenerator.generate(world.world_data)
-		_:
+		7:
 			grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
 			if grading_result.success:
 				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
+		_:
+			site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
 
@@ -446,6 +471,7 @@ func _clear_road_data() -> void:
 	if not _revert_grading_if_applied():
 		status_label.text = "Road clearing refused: applied terrain grading no longer matches the terrain."
 		return
+	FoundationSiteFeatureGenerator.clear_generated(world.world_data)
 	FoundationDistrictGenerator.clear_generated(world.world_data)
 	FoundationFacadeGenerator.clear_generated(world.world_data)
 	FoundationBuildingGenerator.clear_generated(world.world_data)
@@ -480,7 +506,7 @@ func _apply_selected_state() -> void:
 
 func _update_status() -> void:
 	var issue_count := road_result.validation_issues.size() if road_result != null else 0
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d debug" % [
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d parking | %d public | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -493,5 +519,7 @@ func _update_status() -> void:
 		world.world_data.get_buildings().size(),
 		world.world_data.get_facades().size(),
 		world.world_data.get_districts().size(),
+		world.world_data.get_parking_facilities().size(),
+		world.world_data.get_public_features().size(),
 		debug_view.last_primitive_count,
 	]

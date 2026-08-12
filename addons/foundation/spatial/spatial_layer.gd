@@ -155,6 +155,10 @@ static func from_dict(
 				record = FoundationFacadeRecord.from_dict(record_data)
 			FoundationDistrictRecord.RECORD_KIND:
 				record = FoundationDistrictRecord.from_dict(record_data)
+			FoundationParkingFacilityRecord.RECORD_KIND:
+				record = FoundationParkingFacilityRecord.from_dict(record_data)
+			FoundationPublicFeatureRecord.RECORD_KIND:
+				record = FoundationPublicFeatureRecord.from_dict(record_data)
 			_:
 				record = FoundationSpatialRecord.from_dict(record_data)
 		layer.register_record(record)
