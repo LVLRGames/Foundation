@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 10 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, and chunk streaming with terrain visual LOD. Parking facilities and public features remain Node-free, deterministic, serializable, independently validated, spatially indexed planning data.
+The current Phase 11 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, and deterministic typed authoring overrides with conflict-safe reapply and bounded undo/redo.
 
-Addresses, interiors, prefabs, production building/road/bridge/parking/public-space meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, full authoring tools, utilities, and vegetation are intentionally not implemented.
+Addresses, interiors, prefabs, production building/road/bridge/parking/public-space meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, utilities, and vegetation are intentionally not implemented.
+
+## Run the Phase 11 authoring demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Phase 11 overrides, tombstones, and conflicts** and select a Phase 1–10 spatial record.
+3. Use **Nudge override**, **Revert override**, **Undo**, **Redo**, or **Reapply overrides** and inspect the override layer/status.
+4. In the editor, use the **Foundation Authoring** dock for typed JSON edits, explicit create/delete, lock/unlock, validation, and affected-layer reporting.
+
+Phase 11 changes data only through explicit commands. It preserves typed base/authored snapshots and reports dependency impact; it does not silently regenerate downstream layers.
 
 ## Run the Phase 10 parking/public-feature demo
 
@@ -172,6 +181,10 @@ var facades: Array[FoundationFacadeRecord] = world_data.get_facades()
 var districts: Array[FoundationDistrictRecord] = world_data.get_districts()
 var parking: Array[FoundationParkingFacilityRecord] = world_data.get_parking_facilities()
 var public_features: Array[FoundationPublicFeatureRecord] = world_data.get_public_features()
+var authoring := FoundationAuthoringSession.new()
+var moved := authoring.translate_record(world_data, buildings[0].stable_id, Vector2(4.0, 0.0))
+assert(moved.success)
+var authoring_issues := FoundationAuthoringValidator.validate(world_data, authoring.policy, authoring.history)
 var signed_chunk_blocks := world_data.get_records_in_chunk(Vector2i(-1, 0), &"blocks")
 
 var streaming_profile := FoundationChunkStreamingProfile.new()
@@ -204,11 +217,12 @@ var facades := world_data.get_facades()
 var districts := world_data.get_districts()
 var parking := world_data.get_parking_facilities()
 var public_features := world_data.get_public_features()
+var overrides := world_data.get_overrides()
 var parcel_district := world_data.get_district_for_parcel(parcels[0].stable_id)
 var parcel_parking := world_data.get_parking_for_parcel(parcels[0].stable_id)
 ```
 
-Anchors, roads, blocks, parcels, buildings, facades, districts, terrain, and grading plans remain immutable inputs to Phase 10 generation. The new layers own parking demand/layout and public-site placement only. Addresses, production architecture/roads/bridges/parking/public spaces, driveable connections, navigation, traffic, utilities, and full authored overrides remain later contracts.
+Phase 11 can author Phase 1–10 spatial records while preserving generator-owned base snapshots and explicit conflict state. Terrain arrays and grading plans remain outside the override policy. Addresses, interiors, production architecture/roads/bridges/parking/public spaces, driveable connections, navigation, traffic, utilities, and vegetation remain later contracts.
 
 ## Validation
 
@@ -224,8 +238,9 @@ Anchors, roads, blocks, parcels, buildings, facades, districts, terrain, and gra
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_8_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_9_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_10_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_11_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/parking_public_features.md](docs/parking_public_features.md) for the Phase 10 data, generation, authorship, validation, serialization, debug, and exclusion contract. Terrain grading remains documented in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/authoring_overrides.md](docs/authoring_overrides.md) for the Phase 11 authority, reconciliation, history, validation, and exclusion contract. Phase 10 remains documented in [docs/parking_public_features.md](docs/parking_public_features.md), terrain grading in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.

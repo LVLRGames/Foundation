@@ -39,9 +39,9 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 9. District generation
 10. Terrain grading for roads, pads, and bridges (implemented in Phase 9)
 11. Parking and public features (implemented in Phase 10)
-12. Full authoring tools
-13. Selective interiors
-14. Advanced roads and traffic metadata
+12. Full authoring tools (implemented in Phase 11)
+13. Selective interiors (Phase 12)
+14. Advanced roads and traffic metadata (Phase 13)
 
 ## Responsibilities
 
@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, Phase 8 `districts`, and Phase 10 `parking_facilities` plus `public_features`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Phase 10 records and lineage are documented in [parking_public_features.md](parking_public_features.md). Overrides remain separate from raw generator layers; the complete authored override editor is Phase 11.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, Phase 8 `districts`, and Phase 10 `parking_facilities` plus `public_features`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Phase 10 records and lineage are documented in [parking_public_features.md](parking_public_features.md). Phase 11 activates the separate override layer with deterministic typed instructions, conflict-safe reconciliation, validation, and bounded history; see [authoring_overrides.md](authoring_overrides.md).
 
 ## Coordinate conventions
 
@@ -124,7 +124,7 @@ Every record stores one `AuthorshipState`:
 - `LOCKED`: preserve the current generated result
 - `OVERRIDDEN`: authored replacement or edit, normally stored in the separate override layer
 
-`source_pass` and `source_version` identify the generator contract that produced a record. Phase 1 defines the state and storage seam but not the complete override-editing UI.
+`source_pass` and `source_version` identify the generator or authoring contract that produced a record. Phase 11 implements the complete override workflow over this Phase 1 seam.
 
 ## Chunk-bucket spatial index
 
@@ -197,6 +197,6 @@ Changing debug visibility never regenerates world or terrain data.
 - No road behavior inside anchors or the base spatial model; Phase 2 supplies separate abstract topology records
 - No final persistence backend or binary format
 - No full streaming scheduler despite region/chunk state seams
-- No complete override-authoring editor
+- Phase 11 supplies the override-authoring editor; final asset persistence and automatic downstream regeneration remain outside this substrate
 - No quadtree; chunk buckets are the measured-default replacement seam
 - Debug labels use a disposable pool of `Label3D` nodes, while line/fill geometry is batched

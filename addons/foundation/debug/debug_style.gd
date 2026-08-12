@@ -130,6 +130,11 @@ extends Resource
 @export var public_feature_warning := Color("ffb74d")
 @export var public_feature_fill := Color(0.40, 0.73, 0.42, 0.26)
 @export var public_feature_service := Color(0.40, 0.73, 0.42, 0.22)
+@export var override_modify := Color("ffca28")
+@export var override_create := Color("66bb6a")
+@export var override_delete := Color("ef5350")
+@export var override_conflict := Color("ff1744")
+@export var override_fill := Color(1.0, 0.76, 0.03, 0.18)
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -402,6 +407,18 @@ func color_for(purpose: StringName) -> Color:
 			return public_feature_service
 		&"public_feature_anchor_link":
 			return relationship
+		&"override_modify":
+			return override_modify
+		&"override_create":
+			return override_create
+		&"override_delete":
+			return override_delete
+		&"override_conflict":
+			return override_conflict
+		&"override_fill":
+			return override_fill
+		&"override_fill_selected":
+			return selected
 		&"selected":
 			return selected
 		&"relationship":

@@ -323,6 +323,40 @@ func get_public_features_for_anchor(anchor_id: StringName) -> Array[FoundationPu
 	return result
 
 
+func get_overrides() -> Array[FoundationOverrideRecord]:
+	var result: Array[FoundationOverrideRecord] = []
+	var layer := get_layer(OVERRIDE_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationOverrideRecord:
+			result.append(record as FoundationOverrideRecord)
+	return result
+
+
+func get_override_for_target(target_id: StringName) -> FoundationOverrideRecord:
+	for override_record in get_overrides():
+		if override_record.active and override_record.target_record_id == target_id:
+			return override_record
+	return null
+
+
+func get_overrides_for_operation(operation_kind: StringName) -> Array[FoundationOverrideRecord]:
+	var result: Array[FoundationOverrideRecord] = []
+	for override_record in get_overrides():
+		if override_record.operation_kind == operation_kind:
+			result.append(override_record)
+	return result
+
+
+func get_overrides_for_layer(target_layer_type: StringName) -> Array[FoundationOverrideRecord]:
+	var result: Array[FoundationOverrideRecord] = []
+	for override_record in get_overrides():
+		if override_record.target_layer_type == target_layer_type:
+			result.append(override_record)
+	return result
+
+
 func get_district_for_block(block_id: StringName) -> FoundationDistrictRecord:
 	for district in get_districts():
 		if district.member_block_ids.has(block_id):

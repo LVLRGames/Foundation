@@ -130,38 +130,9 @@ static func from_dict(
 	)
 	layer.metadata = data.get("metadata", {}).duplicate(true)
 	for record_data: Dictionary in data.get("records", []):
-		var record_kind := StringName(record_data.get("record_kind", "spatial_record"))
-		var record: FoundationSpatialRecord
-		match record_kind:
-			FoundationCityAnchor.RECORD_KIND:
-				record = FoundationCityAnchor.from_dict(record_data)
-			FoundationRoadNode.RECORD_KIND:
-				record = FoundationRoadNode.from_dict(record_data)
-			FoundationRoadEdge.RECORD_KIND:
-				record = FoundationRoadEdge.from_dict(record_data)
-			FoundationRoadPatternArea.RECORD_KIND:
-				record = FoundationRoadPatternArea.from_dict(record_data)
-			FoundationLogicalRoad.RECORD_KIND:
-				record = FoundationLogicalRoad.from_dict(record_data)
-			FoundationIntersectionRecord.RECORD_KIND:
-				record = FoundationIntersectionRecord.from_dict(record_data)
-			FoundationBlockRecord.RECORD_KIND:
-				record = FoundationBlockRecord.from_dict(record_data)
-			FoundationParcelRecord.RECORD_KIND:
-				record = FoundationParcelRecord.from_dict(record_data)
-			FoundationBuildingRecord.RECORD_KIND:
-				record = FoundationBuildingRecord.from_dict(record_data)
-			FoundationFacadeRecord.RECORD_KIND:
-				record = FoundationFacadeRecord.from_dict(record_data)
-			FoundationDistrictRecord.RECORD_KIND:
-				record = FoundationDistrictRecord.from_dict(record_data)
-			FoundationParkingFacilityRecord.RECORD_KIND:
-				record = FoundationParkingFacilityRecord.from_dict(record_data)
-			FoundationPublicFeatureRecord.RECORD_KIND:
-				record = FoundationPublicFeatureRecord.from_dict(record_data)
-			_:
-				record = FoundationSpatialRecord.from_dict(record_data)
-		layer.register_record(record)
+		var record := FoundationSpatialRecordCodec.record_from_dict(record_data)
+		if record != null:
+			layer.register_record(record)
 	layer.clear_dirty_chunks()
 	for chunk_data: Dictionary in data.get("dirty_chunks", []):
 		layer._dirty_chunks[Vector2i(int(chunk_data.get("x", 0)), int(chunk_data.get("y", 0)))] = true

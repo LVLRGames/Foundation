@@ -77,6 +77,7 @@ func _build_interface() -> void:
 		[&"terrain_grading", "Terrain grading roads, pads, bridges, cut/fill, and validation"],
 		[&"parking_facilities", "Parking demand, footprints, stalls, access, and validation"],
 		[&"public_features", "Public sites, service radii, anchor lineage, and validation"],
+		[&"overrides", "Authored modifications, creations, tombstones, and conflicts"],
 		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
 	]:
@@ -205,6 +206,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"terrain_grading"].button_pressed = _view.show_terrain_grading
 	_layer_toggles[&"parking_facilities"].button_pressed = _view.show_parking_facilities
 	_layer_toggles[&"public_features"].button_pressed = _view.show_public_features
+	_layer_toggles[&"overrides"].button_pressed = _view.show_overrides
 	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
@@ -262,6 +264,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"terrain_grading": _view.show_terrain_grading = value
 		&"parking_facilities": _view.show_parking_facilities = value
 		&"public_features": _view.show_public_features = value
+		&"overrides": _view.show_overrides = value
 		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
