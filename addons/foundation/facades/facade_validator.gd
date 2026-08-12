@@ -36,24 +36,36 @@ static func validate(
 			_add_issue(issues, facade, &"massing_mismatch", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade vertical grid does not match building massing.")
 		if facade.bay_count <= 0 or facade.bay_count > active_profile.maximum_bays_per_facade:
 			_add_issue(issues, facade, &"invalid_bay_count", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade bay count is invalid.")
-		elif facade.bay_width < active_profile.minimum_bay_width - active_profile.geometric_epsilon or facade.bay_width > active_profile.maximum_bay_width + active_profile.geometric_epsilon:
-			_add_issue(issues, facade, &"invalid_bay_width", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade bay width is outside the configured range.")
+		else:
+			var expected_bay_width := facade.facade_length / float(facade.bay_count)
+			if absf(facade.bay_width - expected_bay_width) > active_profile.geometric_epsilon:
+				_add_issue(issues, facade, &"bay_width_mismatch", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade bay width does not match its length and bay count.")
+			if facade.bay_width < active_profile.minimum_bay_width - active_profile.geometric_epsilon or facade.bay_width > active_profile.maximum_bay_width + active_profile.geometric_epsilon:
+				_add_issue(issues, facade, &"invalid_bay_width", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade bay width is outside the configured range.")
 		if facade.modules.size() != facade.bay_count * facade.floor_count:
 			_add_issue(issues, facade, &"incomplete_module_grid", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module grid does not contain one module per floor and bay.")
 		_validate_modules(facade, active_profile, issues)
 		if facade.facade_role == FoundationFacadeRecord.ROLE_PRIMARY:
 			primary_counts[facade.parent_id] = int(primary_counts.get(facade.parent_id, 0)) + 1
 		var entrances := 0
+		var sole_entrance_id: StringName
 		for module in facade.modules:
 			if module.kind == FoundationFacadeModule.KIND_ENTRANCE:
 				entrances += 1
+				sole_entrance_id = module.module_id
 		entrance_counts[facade.parent_id] = int(entrance_counts.get(facade.parent_id, 0)) + entrances
 		if facade.facade_role == FoundationFacadeRecord.ROLE_PRIMARY and entrances != 1:
 			_add_issue(issues, facade, &"primary_entrance_count", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Primary facade must contain exactly one entrance module.")
 		elif facade.facade_role != FoundationFacadeRecord.ROLE_PRIMARY and entrances > 0:
 			_add_issue(issues, facade, &"entrance_on_non_primary", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Entrance modules are only allowed on the primary facade.")
+		var expected_entrance_id := sole_entrance_id if entrances == 1 else &""
+		if facade.entrance_module_id != expected_entrance_id:
+			_add_issue(issues, facade, &"entrance_identity_mismatch", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade entrance identity does not match its entrance module.")
 		if facade.glazing_ratio < -active_profile.geometric_epsilon or facade.glazing_ratio > 1.0 + active_profile.geometric_epsilon:
 			_add_issue(issues, facade, &"invalid_glazing_ratio", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade glazing ratio is invalid.")
+		var expected_glazing_ratio := _expected_glazing_ratio(facade)
+		if absf(facade.glazing_ratio - expected_glazing_ratio) > active_profile.geometric_epsilon:
+			_add_issue(issues, facade, &"glazing_ratio_mismatch", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade glazing ratio does not match its window modules.")
 
 	for building in world.get_buildings():
 		var facades := _facades_for_building(world, building.stable_id)
@@ -78,6 +90,8 @@ static func _validate_modules(
 	var occupied: Dictionary = {}
 	var ids: Dictionary = {}
 	for module in facade.modules:
+		if String(module.module_id).is_empty():
+			_add_issue(issues, facade, &"missing_module_id", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module identity cannot be empty.")
 		if ids.has(module.module_id):
 			_add_issue(issues, facade, &"duplicate_module_id", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade contains duplicate module IDs.")
 		ids[module.module_id] = true
@@ -85,14 +99,34 @@ static func _validate_modules(
 		if occupied.has(cell_key):
 			_add_issue(issues, facade, &"duplicate_module_cell", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade contains multiple modules in one grid cell.")
 		occupied[cell_key] = true
-		if module.floor_index < 0 or module.floor_index >= facade.floor_count or module.bay_index < 0 or module.bay_index >= facade.bay_count:
+		var cell_is_valid := module.floor_index >= 0 and module.floor_index < facade.floor_count and module.bay_index >= 0 and module.bay_index < facade.bay_count
+		if not cell_is_valid:
 			_add_issue(issues, facade, &"module_outside_grid", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module index is outside the grid.")
 		if module.horizontal_start < -profile.geometric_epsilon or module.horizontal_end > facade.facade_length + profile.geometric_epsilon or module.vertical_start < -profile.geometric_epsilon or module.vertical_end > facade.height + profile.geometric_epsilon or module.area() <= profile.geometric_epsilon:
 			_add_issue(issues, facade, &"invalid_module_bounds", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module bounds are empty or outside the facade plane.")
+		if cell_is_valid and facade.bay_count > 0:
+			var cell_width := facade.facade_length / float(facade.bay_count)
+			var cell_horizontal_start := float(module.bay_index) * cell_width
+			var cell_horizontal_end := float(module.bay_index + 1) * cell_width
+			var cell_vertical_start := float(module.floor_index) * facade.floor_height
+			var cell_vertical_end := float(module.floor_index + 1) * facade.floor_height
+			if module.horizontal_start < cell_horizontal_start - profile.geometric_epsilon or module.horizontal_end > cell_horizontal_end + profile.geometric_epsilon or module.vertical_start < cell_vertical_start - profile.geometric_epsilon or module.vertical_end > cell_vertical_end + profile.geometric_epsilon:
+				_add_issue(issues, facade, &"module_outside_cell", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module bounds extend outside their assigned floor and bay cell.")
 		if module.kind not in [FoundationFacadeModule.KIND_WALL, FoundationFacadeModule.KIND_WINDOW, FoundationFacadeModule.KIND_ENTRANCE]:
 			_add_issue(issues, facade, &"unknown_module_kind", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Facade module kind is unsupported.")
 		if module.kind == FoundationFacadeModule.KIND_ENTRANCE and module.floor_index != 0:
 			_add_issue(issues, facade, &"elevated_entrance", FoundationFacadeValidationIssue.SEVERITY_ERROR, "Entrance module must be on the ground floor.")
+
+
+static func _expected_glazing_ratio(facade: FoundationFacadeRecord) -> float:
+	var facade_area := facade.facade_length * facade.height
+	if facade_area <= 0.0:
+		return 0.0
+	var glazed_area := 0.0
+	for module in facade.modules:
+		if module.kind == FoundationFacadeModule.KIND_WINDOW:
+			glazed_area += module.area()
+	return glazed_area / facade_area
 
 
 static func _facades_for_building(world: FoundationWorldData, building_id: StringName) -> Array[FoundationFacadeRecord]:

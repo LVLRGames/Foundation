@@ -65,15 +65,17 @@ static func _generate_for_building(
 	if building.validation_state == FoundationBuildingRecord.INVALID:
 		_skip_building(result, building, &"invalid_parent_building", "Building validation state is invalid.")
 		return
-	if building.footprint.size() < 3 or building.height <= profile.geometric_epsilon or building.floor_count <= 0:
+	if building.footprint.size() < 3 or building.height <= profile.geometric_epsilon or building.floor_count <= 0 or building.floor_height <= profile.geometric_epsilon:
 		_skip_building(result, building, &"invalid_building_massing", "Building footprint or height is degenerate.")
+		return
+	if building.floor_height <= profile.top_opening_margin + profile.geometric_epsilon:
+		_skip_building(result, building, &"floor_too_short_for_openings", "Building floors cannot contain openings with the configured top margin.")
 		return
 	var parcel := world.get_record(building.parent_id) as FoundationParcelRecord
 	if parcel == null:
 		_skip_building(result, building, &"missing_parent_parcel", "Building parent parcel is missing.")
 		return
-	var primary_index := _primary_segment_index(building, parcel)
-	var primary_outward := _segment_outward(building.footprint, primary_index)
+	var eligible_segments: Array[int] = []
 	for segment_index in range(building.footprint.size()):
 		result.generation_operation_count += 1
 		var first := building.footprint[segment_index]
@@ -87,6 +89,23 @@ static func _generate_for_building(
 				"point": _point_dict((first + second) * 0.5),
 			})
 			continue
+		if _bay_count(length, profile) <= 0:
+			result.add_diagnostic(&"facade_bay_cap_exhausted", FoundationFacadeValidationIssue.SEVERITY_INFO, {
+				"parent_building_id": String(building.stable_id),
+				"source_segment_index": segment_index,
+				"message": "Building edge requires more bays than the configured facade cap.",
+				"point": _point_dict((first + second) * 0.5),
+			})
+			continue
+		eligible_segments.append(segment_index)
+	if eligible_segments.is_empty():
+		_skip_building(result, building, &"no_eligible_facade_edges", "Building has no edges eligible for the configured facade grammar.")
+		return
+	var primary_index := _primary_segment_index(building, parcel, eligible_segments)
+	var primary_outward := _segment_outward(building.footprint, primary_index)
+	for segment_index in eligible_segments:
+		var first := building.footprint[segment_index]
+		var second := building.footprint[(segment_index + 1) % building.footprint.size()]
 		var role := _role_for_segment(building.footprint, segment_index, primary_index, primary_outward)
 		_generate_facade(world, building, segment_index, first, second, role, profile, result)
 
@@ -232,7 +251,11 @@ static func _bay_count(length: float, profile: FoundationFacadeGenerationProfile
 	return clampi(roundi(length / profile.preferred_bay_width), minimum_count, maximum_count)
 
 
-static func _primary_segment_index(building: FoundationBuildingRecord, parcel: FoundationParcelRecord) -> int:
+static func _primary_segment_index(
+	building: FoundationBuildingRecord,
+	parcel: FoundationParcelRecord,
+	eligible_segments: Array[int]
+) -> int:
 	var target := building.frontage_direction.normalized()
 	var frontage_a := Vector2.ZERO
 	var frontage_b := Vector2.ZERO
@@ -244,9 +267,9 @@ static func _primary_segment_index(building: FoundationBuildingRecord, parcel: F
 			frontage_a = parcel.boundary[segment_index]
 			frontage_b = parcel.boundary[(segment_index + 1) % parcel.boundary.size()]
 			has_frontage = true
-	var best_index := 0
+	var best_index := eligible_segments[0]
 	var best_score := -INF
-	for index in range(building.footprint.size()):
+	for index in eligible_segments:
 		var first := building.footprint[index]
 		var second := building.footprint[(index + 1) % building.footprint.size()]
 		var outward := _segment_outward(building.footprint, index)
@@ -309,7 +332,8 @@ static func _facade_id(
 ) -> StringName:
 	return FoundationSpatialId.make(
 		world.metadata.seed, profile.generator_version, world.metadata.content_pack_version,
-		FoundationFacadeRecord.ENTITY_TYPE, building_id, "edge:%d" % segment_index
+		FoundationFacadeRecord.ENTITY_TYPE, building_id,
+		"edge:%d|grammar:%s" % [segment_index, profile.grammar_id]
 	)
 
 
@@ -324,7 +348,7 @@ static func _repair_facade_id(
 		var candidate := FoundationSpatialId.make(
 			world.metadata.seed, profile.generator_version, world.metadata.content_pack_version,
 			FoundationFacadeRecord.ENTITY_TYPE, building_id,
-			"edge:%d|repair:%d" % [segment_index, ordinal]
+			"edge:%d|grammar:%s|repair:%d" % [segment_index, profile.grammar_id, ordinal]
 		)
 		if world.get_record(candidate) == null:
 			return candidate

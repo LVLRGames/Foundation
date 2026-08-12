@@ -9,6 +9,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var baseline := _test_deterministic_modular_grammar()
+	_test_ineligible_frontage_edge()
 	_test_signed_spatial_ownership()
 	_test_authored_regeneration_and_serialization()
 	_test_validation_and_non_mutation()
@@ -30,17 +31,23 @@ func _test_deterministic_modular_grammar() -> FoundationWorldData:
 	var first := _make_world(7101)
 	var second := _make_world(7101)
 	var changed := _make_world(7102)
+	var changed_grammar := _make_world(7101)
 	_add_building_fixture(first, &"primary")
 	_add_building_fixture(second, &"primary")
 	_add_building_fixture(changed, &"primary")
+	_add_building_fixture(changed_grammar, &"primary")
 	var inputs_before := _input_snapshot(first)
 	var first_result := FoundationFacadeGenerator.generate(first)
 	var second_result := FoundationFacadeGenerator.generate(second)
 	var changed_result := FoundationFacadeGenerator.generate(changed)
-	_check(first_result.success and second_result.success and changed_result.success, "modular facade generation succeeds")
+	var changed_grammar_profile := FoundationFacadeGenerationProfile.new()
+	changed_grammar_profile.grammar_id = &"alternate_modular_facade"
+	var changed_grammar_result := FoundationFacadeGenerator.generate(changed_grammar, changed_grammar_profile)
+	_check(first_result.success and second_result.success and changed_result.success and changed_grammar_result.success, "modular facade generation succeeds")
 	_check(first.get_facades().size() == 4, "one facade record is generated per eligible rectangular footprint edge")
 	_check(_facade_snapshot(first) == _facade_snapshot(second), "same seed, profile, and buildings reproduce facade IDs, roles, grids, and modules")
 	_check(_module_kind_snapshot(first) != _module_kind_snapshot(changed), "eligible seed change alters the modular opening pattern through named streams")
+	_check(_facade_id_snapshot(first) != _facade_id_snapshot(changed_grammar), "facade stable identity includes the selected grammar contract")
 	var primary_count := 0
 	var rear_count := 0
 	var side_count := 0
@@ -65,6 +72,31 @@ func _test_deterministic_modular_grammar() -> FoundationWorldData:
 	_check(first_result.window_module_count > 0 and first_result.entrance_module_count == 1, "grammar emits explicit window and entrance modules")
 	_check(_input_snapshot(first) == inputs_before, "Phase 7 does not mutate buildings, parcels, blocks, roads, or terrain-backed inputs")
 	return first
+
+
+func _test_ineligible_frontage_edge() -> void:
+	var world := _make_world(7151)
+	var building := _add_building_fixture(world, &"short_frontage")
+	building.set_footprint(PackedVector2Array([
+		Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(20.0, 4.0),
+		Vector2(20.0, 20.0), Vector2(0.0, 20.0),
+	]))
+	var parcel := world.get_record(building.parent_id) as FoundationParcelRecord
+	building.refresh_metrics(parcel.area)
+	building.refresh_massing()
+	world.register_record(building)
+	var result := FoundationFacadeGenerator.generate(world)
+	var primary_count := 0
+	var entrance_count := 0
+	for facade in world.get_facades():
+		primary_count += 1 if facade.facade_role == FoundationFacadeRecord.ROLE_PRIMARY else 0
+		for module in facade.modules:
+			entrance_count += 1 if module.kind == FoundationFacadeModule.KIND_ENTRANCE else 0
+	var reported_short_edge := false
+	for diagnostic in result.diagnostics:
+		reported_short_edge = reported_short_edge or diagnostic.get("kind", "") == "facade_edge_too_short"
+	_check(result.success and reported_short_edge, "ineligible short frontage edges are skipped with deterministic diagnostics")
+	_check(primary_count == 1 and entrance_count == 1, "primary facade selection considers only eligible edges and preserves one entrance")
 
 
 func _test_signed_spatial_ownership() -> void:
@@ -92,9 +124,11 @@ func _test_authored_regeneration_and_serialization() -> void:
 	FoundationFacadeGenerator.generate(world)
 	_check(world.get_record(facade.stable_id) == facade and JSON.stringify(facade.to_dict()) == locked_snapshot, "locked facade survives regeneration as the same object")
 	facade.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	var original_chunks := facade.owning_chunks.duplicate()
 	facade.set_segment(facade.start + Vector2(420.0, 0.0), facade.end + Vector2(420.0, 0.0))
+	var expected_chunks := world.coordinate_system.world_bounds_to_chunks(facade.world_bounds)
 	FoundationFacadeGenerator.generate(world)
-	_check(world.get_record(facade.stable_id) == facade and facade.owning_chunks.has(Vector2i(3, 0)), "overridden facade survives and refreshes authored spatial ownership")
+	_check(world.get_record(facade.stable_id) == facade and facade.owning_chunks == expected_chunks and facade.owning_chunks != original_chunks, "overridden facade survives and refreshes authored spatial ownership")
 	var generated_repair: StringName
 	for candidate in world.get_facades():
 		if candidate.parent_id == facade.parent_id and candidate.source_segment_index == facade.source_segment_index and candidate.authorship_state == FoundationSpatialRecord.AuthorshipState.GENERATED:
@@ -129,6 +163,33 @@ func _test_validation_and_non_mutation() -> void:
 	for issue in issues:
 		found_incomplete = found_incomplete or issue.kind == &"incomplete_module_grid"
 	_check(found_incomplete and facade.validation_state == FoundationFacadeRecord.INVALID, "validation reports incomplete modular grids and marks generated facade data invalid")
+
+	var corrupted_world := _make_world(7451)
+	_add_building_fixture(corrupted_world, &"corrupted")
+	FoundationFacadeGenerator.generate(corrupted_world)
+	var primary: FoundationFacadeRecord
+	for candidate in corrupted_world.get_facades():
+		if candidate.facade_role == FoundationFacadeRecord.ROLE_PRIMARY:
+			primary = candidate
+			break
+	var displaced_module: FoundationFacadeModule
+	for module in primary.modules:
+		if module.bay_index > 0:
+			displaced_module = module
+			break
+	displaced_module.horizontal_start = 0.0
+	displaced_module.horizontal_end = minf(0.5, primary.facade_length)
+	primary.bay_width += 0.1
+	primary.entrance_module_id = &"wrong_entrance"
+	primary.glazing_ratio = primary.glazing_ratio + 0.1 if primary.glazing_ratio < 0.8 else primary.glazing_ratio - 0.1
+	var corrupted_issues := FoundationFacadeValidator.validate(corrupted_world, null, true)
+	var corrupted_kinds: Dictionary = {}
+	for issue in corrupted_issues:
+		corrupted_kinds[issue.kind] = true
+	_check(corrupted_kinds.has(&"module_outside_cell"), "validation rejects module rectangles outside their assigned floor/bay cell")
+	_check(corrupted_kinds.has(&"bay_width_mismatch"), "validation recomputes bay width from authoritative facade geometry")
+	_check(corrupted_kinds.has(&"entrance_identity_mismatch"), "validation verifies semantic entrance identity against the module grid")
+	_check(corrupted_kinds.has(&"glazing_ratio_mismatch"), "validation recomputes glazing ratio from window module areas")
 
 
 func _test_debug_contract(world: FoundationWorldData) -> void:
@@ -257,6 +318,13 @@ func _facade_snapshot(world: FoundationWorldData) -> String:
 	for facade in world.get_facades():
 		data.append(facade.to_dict())
 	return JSON.stringify(data)
+
+
+func _facade_id_snapshot(world: FoundationWorldData) -> String:
+	var values := PackedStringArray()
+	for facade in world.get_facades():
+		values.append(String(facade.stable_id))
+	return "|".join(values)
 
 
 func _module_kind_snapshot(world: FoundationWorldData) -> String:
