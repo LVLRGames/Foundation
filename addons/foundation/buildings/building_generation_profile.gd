@@ -3,11 +3,11 @@ extends RefCounted
 
 ## Explicit deterministic Phase 5 footprint and primitive-massing inputs.
 
-const FORMAT_VERSION := 1
+const FORMAT_VERSION := 2
 const STREAM_COVERAGE: StringName = &"building_footprint_coverage"
 const STREAM_FLOOR_COUNT: StringName = &"building_floor_count"
 
-var generator_version := 1
+var generator_version := 2
 var front_setback := 4.0
 var side_setback := 2.0
 var rear_setback := 4.0
@@ -15,6 +15,10 @@ var corner_side_setback := 3.0
 var minimum_footprint_area := 24.0
 var minimum_coverage_ratio := 0.32
 var maximum_coverage_ratio := 0.68
+var maximum_footprint_depth := 40.0
+var maximum_frontage_span := 48.0
+var maximum_footprint_aspect_ratio := 3.0
+var allow_long_form_massing := false
 var minimum_floor_count := 1
 var maximum_floor_count := 4
 var floor_height := 3.2
@@ -37,6 +41,10 @@ func validation_errors() -> PackedStringArray:
 		errors.append("Minimum building footprint area must be positive.")
 	if minimum_coverage_ratio <= 0.0 or maximum_coverage_ratio < minimum_coverage_ratio or maximum_coverage_ratio > 1.0:
 		errors.append("Building coverage limits are invalid.")
+	if maximum_footprint_depth <= 0.0 or maximum_frontage_span <= 0.0:
+		errors.append("Building footprint depth and frontage-span limits must be positive.")
+	if maximum_footprint_aspect_ratio < 1.0:
+		errors.append("Maximum building footprint aspect ratio must be at least one.")
 	if minimum_floor_count <= 0 or maximum_floor_count < minimum_floor_count:
 		errors.append("Building floor-count limits are invalid.")
 	if floor_height <= 0.0 or maximum_building_height < floor_height:
@@ -63,6 +71,10 @@ func to_dict() -> Dictionary:
 		"minimum_footprint_area": minimum_footprint_area,
 		"minimum_coverage_ratio": minimum_coverage_ratio,
 		"maximum_coverage_ratio": maximum_coverage_ratio,
+		"maximum_footprint_depth": maximum_footprint_depth,
+		"maximum_frontage_span": maximum_frontage_span,
+		"maximum_footprint_aspect_ratio": maximum_footprint_aspect_ratio,
+		"allow_long_form_massing": allow_long_form_massing,
 		"minimum_floor_count": minimum_floor_count,
 		"maximum_floor_count": maximum_floor_count,
 		"floor_height": floor_height,
@@ -87,6 +99,10 @@ static func from_dict(data: Dictionary) -> FoundationBuildingGenerationProfile:
 	profile.minimum_footprint_area = float(data.get("minimum_footprint_area", 24.0))
 	profile.minimum_coverage_ratio = float(data.get("minimum_coverage_ratio", 0.32))
 	profile.maximum_coverage_ratio = float(data.get("maximum_coverage_ratio", 0.68))
+	profile.maximum_footprint_depth = float(data.get("maximum_footprint_depth", 40.0))
+	profile.maximum_frontage_span = float(data.get("maximum_frontage_span", 48.0))
+	profile.maximum_footprint_aspect_ratio = float(data.get("maximum_footprint_aspect_ratio", 3.0))
+	profile.allow_long_form_massing = bool(data.get("allow_long_form_massing", false))
 	profile.minimum_floor_count = int(data.get("minimum_floor_count", 1))
 	profile.maximum_floor_count = int(data.get("maximum_floor_count", 4))
 	profile.floor_height = float(data.get("floor_height", 3.2))

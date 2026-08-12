@@ -4,17 +4,17 @@ Phase 4 turns canonical Phase 3 block polygons into compact, renderer-independen
 
 ## Data and frontage contracts
 
-Every parcel stores a canonical counter-clockwise XZ boundary, stable parent-block identity, area/perimeter/centroid/label metrics, approximate frontage width and depth, signed chunk/region ownership, authorship state, and validation state. `FoundationParcelFrontageReference` maps parcel boundary segments back to the contributing block side, Phase 2 road edge, and logical road. A deterministic primary frontage is selected with local-access roads preferred over higher-control road classes.
+Every parcel stores a canonical counter-clockwise XZ boundary, stable parent-block identity, area/perimeter/centroid/label metrics, approximate frontage width/depth/aspect ratio, frontage-row and source-block-side provenance, signed chunk/region ownership, authorship state, and validation state. `FoundationParcelFrontageReference` maps parcel boundary segments back to the contributing block side, Phase 2 road edge, and logical road. A deterministic primary frontage is selected with local-access roads preferred over higher-control road classes.
 
 Parcel kinds are `standard`, `corner`, `flag_access`, and `remainder`. Standard and corner parcels are buildable only when the configured area, frontage, and depth limits pass. Landlocked or otherwise ineligible pieces are never silently presented as ordinary buildable lots: larger pieces become explicit access-required records and small leftovers become explicit remainders.
 
 ## Deterministic subdivision and coverage
 
-`FoundationParcelSubdivider` validates and canonicalizes each parent block, selects a stable split axis, and partitions its bounds into deterministic seeded strips. Each strip is intersected with the actual block polygon through `Geometry2D`, so concave and L-shaped blocks may yield multiple valid polygon components without rectangular assumptions.
+`FoundationParcelSubdivider` validates and canonicalizes each parent block, finds boundary segments with real road provenance, and selects at most four street-facing sides. It prefers deterministic opposing pairs where the block geometry permits them. Each selected side grows one shallow band inward and divides that band along its real frontage into seeded cells. Cells are intersected with the actual unassigned block polygon through `Geometry2D`, so concave and L-shaped blocks may yield multiple valid polygon components without rectangular assumptions. Earlier rows own shared corners deterministically; later rows consume only land that remains unassigned.
 
-The strips partition the full parent extent. Their clipped components therefore cover the parent polygon, including explicit remainder/access-required pieces. `FoundationParcelValidator` checks outside-parent geometry, overlap, area coverage, degeneracy, self-intersection, frontage/access rules, and road/logical-road provenance. Coverage tolerance is derived only from the serialized geometry profile.
+After the selected frontage bands are assigned, all untouched components are serialized as explicit non-buildable access-required or remainder parcels. Frontage bands plus these center components cover the full parent without overlap. Repeated articulation vertices from polygon clipping are separated into simple components before registration. `FoundationParcelValidator` checks outside-parent geometry, overlap, area coverage, degeneracy, self-intersection, row count/provenance, frontage/access rules, compact proportions, and road/logical-road provenance. Coverage tolerance is derived only from the serialized geometry profile.
 
-Strip parcels span the selected block cross-axis. Deep blocks can therefore produce elongated parcels up to the configured `maximum_depth` (128 m by default), and Phase 5 massing follows those parcel envelopes. Shared boundaries between generated parcels are lot lines only: they do not imply a road, lane, driveway, or alley. A parcel has road frontage only where its boundary carries explicit source road-edge and logical-road provenance from the parent block. More proportional back-to-back lots or explicit alley/service topology require a later subdivision contract because they change parcel geometry and stable identities.
+Default frontage rows target 32 m depth, stop at 48 m, and require buildable parcels to remain at or below a 3:1 approximate aspect ratio. The serialized profile caps frontage rows between one and four. `allow_long_form_parcels` is an explicit, non-default exception seam; default generation never labels an over-depth or over-aspect component buildable. Shared boundaries between generated parcels are lot lines only: they do not imply a road, lane, driveway, or alley. A parcel has road frontage only where its boundary carries explicit source road-edge and logical-road provenance from the parent block. The generator does not invent access through center land; real alleys, driveways, or service topology require a later contract.
 
 The named seed streams are:
 
@@ -33,7 +33,7 @@ The `parcels` spatial layer serializes its typed records, profile, deterministic
 
 ## Debug and controls
 
-The parcel debug provider batches outlines, concave-safe fills, primary and secondary frontage, corner/access/remainder colors, labels, selection, and located validation diagnostics. Disabling the provider performs no provider work. The runtime demo and editor debug dock can regenerate or clear generated parcels, toggle the parcel overlay, inspect records, and exercise locked/overridden states without coupling the records to scene nodes.
+The parcel debug provider batches outlines, concave-safe fills, primary and secondary frontage, corner/access/remainder colors, labels, selection, and located validation diagnostics. Labels include frontage row, depth, and aspect ratio. Disabling the provider performs no provider work. The runtime demo and editor debug dock can regenerate or clear generated parcels, toggle the parcel overlay, inspect records, and exercise locked/overridden states without coupling the records to scene nodes.
 
 ## Non-goals
 

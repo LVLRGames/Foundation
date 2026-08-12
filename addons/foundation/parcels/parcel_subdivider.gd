@@ -1,7 +1,7 @@
 class_name FoundationParcelSubdivider
 extends RefCounted
 
-## Deterministic frontage-aware subdivision of Phase 3 polygons using clipped strip partitions.
+## Deterministic frontage-led subdivision of Phase 3 polygons using at most four road-backed rows.
 
 const SOURCE_PASS: StringName = &"phase_4_parcel_subdivision"
 
@@ -76,47 +76,90 @@ static func _subdivide_block(
 		})
 		return
 	result.parent_area_total += block.area
-	var bounds := FoundationBlockRecord._bounds_for_boundary(canonical_block)
-	var split_x := _choose_split_x(world, block, bounds, profile)
-	var axis_extent := bounds.size.x if split_x else bounds.size.y
-	var cross_extent := bounds.size.y if split_x else bounds.size.x
-	var desired_width := clampf(
-		profile.target_parcel_area / maxf(cross_extent, profile.minimum_depth),
-		profile.minimum_frontage,
-		profile.maximum_frontage
-	)
-	var spacing_seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s" % [profile.STREAM_SPLIT_SPACING, block.stable_id]))
-	var spacing_factor := 0.82 + float(spacing_seed % 3701) / 10000.0
-	desired_width = maxf(profile.minimum_frontage, desired_width * spacing_factor)
-	var strip_count := maxi(1, ceili(axis_extent / maxf(desired_width, profile.point_quantization)))
-	strip_count = mini(strip_count, active_strip_cap(profile))
-	var split_positions := _split_positions(world, block, axis_extent, strip_count, profile)
-	var block_area_from_parcels := 0.0
-	for strip_index in range(strip_count):
-		result.subdivision_operation_count += 1
-		var start := split_positions[strip_index]
-		var finish := split_positions[strip_index + 1]
-		var clip_polygon := _strip_polygon(bounds, split_x, start, finish, profile.geometric_epsilon)
-		var components := Geometry2D.intersect_polygons(canonical_block, clip_polygon)
-		var canonical_components: Array[PackedVector2Array] = []
-		for component in components:
-			var canonical := canonicalize_boundary(component, profile)
-			if canonical.size() >= 3 and absf(FoundationBlockRecord._signed_area(canonical)) > profile.geometric_epsilon:
-				canonical_components.append(canonical)
-		canonical_components.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
-			return boundary_key(a, profile) < boundary_key(b, profile)
+	var unassigned: Array[PackedVector2Array] = [canonical_block]
+	var parcel_specs: Array[Dictionary] = []
+	var frontage_candidates := _select_frontage_candidates(world, block, profile)
+	for row_index in range(frontage_candidates.size()):
+		var candidate: Dictionary = frontage_candidates[row_index]
+		var segment_index := int(candidate["segment_index"])
+		var segment_a := block.outer_boundary[segment_index]
+		var segment_b := block.outer_boundary[(segment_index + 1) % block.outer_boundary.size()]
+		var segment_length := segment_a.distance_to(segment_b)
+		var row_depth := _frontage_row_depth(world, block, segment_index, profile)
+		var desired_width := clampf(
+			profile.target_parcel_area / maxf(row_depth, profile.minimum_depth),
+			profile.minimum_frontage,
+			profile.maximum_frontage
 		)
-		for component_index in range(canonical_components.size()):
-			var boundary := canonical_components[component_index]
-			var expected_id := _parcel_id(world, block.stable_id, boundary_key(boundary, profile), profile)
-			var preserved := world.get_record(expected_id) as FoundationParcelRecord
-			if preserved != null and preserved.parent_id == block.stable_id and _boundaries_equal(preserved.boundary, boundary, profile.geometric_epsilon):
-				block_area_from_parcels += preserved.area
-				continue
-			var references := _derive_frontage(world, block, boundary, profile, result)
-			var parcel := _create_parcel(world, block, boundary, references, profile)
-			_register_parcel(world, parcel, profile, result)
-			block_area_from_parcels += parcel.area
+		var spacing_seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s:%d" % [
+			profile.STREAM_SPLIT_SPACING, block.stable_id, segment_index,
+		]))
+		desired_width *= 0.88 + float(spacing_seed % 2401) / 10000.0
+		desired_width = clampf(desired_width, profile.minimum_frontage, profile.maximum_frontage)
+		var cell_count := maxi(1, ceili(segment_length / maxf(desired_width, profile.point_quantization)))
+		cell_count = mini(cell_count, active_strip_cap(profile))
+		var positions := _frontage_split_positions(
+			world, block, segment_index, segment_length, cell_count, profile
+		)
+		for cell_index in range(cell_count):
+			result.subdivision_operation_count += 1
+			var clip_polygon := _frontage_cell_polygon(
+				segment_a, segment_b, positions[cell_index], positions[cell_index + 1],
+				row_depth, FoundationBlockRecord._signed_area(block.outer_boundary) >= 0.0,
+				profile.geometric_epsilon
+			)
+			var accepted: Array[PackedVector2Array] = []
+			for component in unassigned:
+				result.subdivision_operation_count += 1
+				for raw in Geometry2D.intersect_polygons(component, clip_polygon):
+					for boundary in _split_repeated_vertex_components(raw, profile):
+						var references := _derive_frontage(world, block, boundary, profile, result)
+						if not _has_frontage_on_segment(references, segment_index):
+							continue
+						accepted.append(boundary)
+			accepted.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+				return boundary_key(a, profile) < boundary_key(b, profile)
+			)
+			for boundary in accepted:
+				parcel_specs.append({
+					"boundary": boundary,
+					"frontage_row_index": row_index,
+					"source_block_segment_index": segment_index,
+				})
+				unassigned = _subtract_components(unassigned, boundary, profile, result)
+
+	# Land that cannot be reached by one of the selected street frontages remains
+	# explicit and auditable. It is never silently promoted to a buildable parcel.
+	for component in unassigned:
+		var remainder := canonicalize_boundary(component, profile)
+		if remainder.size() >= 3 and absf(FoundationBlockRecord._signed_area(remainder)) > profile.geometric_epsilon:
+			parcel_specs.append({
+				"boundary": remainder,
+				"frontage_row_index": -1,
+				"source_block_segment_index": -1,
+			})
+	parcel_specs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_row := int(a["frontage_row_index"])
+		var b_row := int(b["frontage_row_index"])
+		if a_row != b_row:
+			return a_row < b_row
+		return boundary_key(a["boundary"], profile) < boundary_key(b["boundary"], profile)
+	)
+	var block_area_from_parcels := 0.0
+	for spec in parcel_specs:
+		var boundary: PackedVector2Array = spec["boundary"]
+		var expected_id := _parcel_id(world, block.stable_id, boundary_key(boundary, profile), profile)
+		var preserved := world.get_record(expected_id) as FoundationParcelRecord
+		if preserved != null and preserved.parent_id == block.stable_id and _boundaries_equal(preserved.boundary, boundary, profile.geometric_epsilon):
+			block_area_from_parcels += preserved.area
+			continue
+		var references := _derive_frontage(world, block, boundary, profile, result)
+		var parcel := _create_parcel(
+			world, block, boundary, references, profile,
+			int(spec["frontage_row_index"]), int(spec["source_block_segment_index"])
+		)
+		_register_parcel(world, parcel, profile, result)
+		block_area_from_parcels += parcel.area
 	result.parcel_area_total += block_area_from_parcels
 	var coverage_error := absf(block_area_from_parcels - block.area)
 	result.coverage_error_total += coverage_error
@@ -127,51 +170,174 @@ static func _subdivide_block(
 		})
 
 
-static func _choose_split_x(
+static func _select_frontage_candidates(
 	world: FoundationWorldData,
 	block: FoundationBlockRecord,
-	bounds: Rect2,
 	profile: FoundationParcelGenerationProfile
-) -> bool:
-	var longer_is_x := bounds.size.x >= bounds.size.y
-	var near_square := absf(bounds.size.x - bounds.size.y) <= maxf(bounds.size.x, bounds.size.y) * 0.35
-	if not near_square:
-		return longer_is_x
-	var seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s" % [profile.STREAM_SPLIT_ORIENTATION, block.stable_id]))
-	return seed % 2 == 0
+) -> Array[Dictionary]:
+	var candidates: Array[Dictionary] = []
+	for segment_index in range(block.outer_boundary.size()):
+		var has_road_frontage := false
+		for reference in block.boundary_references:
+			if reference.boundary_segment_index == segment_index and not String(reference.road_edge_id).is_empty():
+				has_road_frontage = true
+				break
+		if not has_road_frontage:
+			continue
+		var first := block.outer_boundary[segment_index]
+		var second := block.outer_boundary[(segment_index + 1) % block.outer_boundary.size()]
+		var length := first.distance_to(second)
+		if length <= profile.geometric_epsilon:
+			continue
+		candidates.append({
+			"segment_index": segment_index,
+			"length": length,
+			"direction": (second - first) / length,
+			"tie_seed": FoundationSeed.derive(world.metadata.seed, StringName("%s:%s:%d" % [
+				profile.STREAM_SPLIT_ORIENTATION, block.stable_id, segment_index,
+			])),
+		})
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if not is_equal_approx(float(a["length"]), float(b["length"])):
+			return float(a["length"]) > float(b["length"])
+		if int(a["tie_seed"]) != int(b["tie_seed"]):
+			return int(a["tie_seed"]) < int(b["tie_seed"])
+		return int(a["segment_index"]) < int(b["segment_index"])
+	)
+	var selected: Array[Dictionary] = []
+	while not candidates.is_empty() and selected.size() < profile.maximum_frontage_rows:
+		var chosen_index := 0
+		if selected.size() % 2 == 1:
+			var previous_direction: Vector2 = selected[selected.size() - 1]["direction"]
+			var best_dot := 2.0
+			for index in range(candidates.size()):
+				var candidate_direction: Vector2 = candidates[index]["direction"]
+				var direction_dot := previous_direction.dot(candidate_direction)
+				if direction_dot < best_dot - profile.geometric_epsilon:
+					best_dot = direction_dot
+					chosen_index = index
+		selected.append(candidates[chosen_index])
+		candidates.remove_at(chosen_index)
+	return selected
 
 
-static func _split_positions(
+static func _frontage_row_depth(
 	world: FoundationWorldData,
 	block: FoundationBlockRecord,
+	segment_index: int,
+	profile: FoundationParcelGenerationProfile
+) -> float:
+	var seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s:%d:depth" % [
+		profile.STREAM_SPLIT_SPACING, block.stable_id, segment_index,
+	]))
+	var factor := 0.92 + float(seed % 1601) / 10000.0
+	return clampf(profile.preferred_depth * factor, profile.minimum_depth, profile.maximum_depth)
+
+
+static func _frontage_split_positions(
+	world: FoundationWorldData,
+	block: FoundationBlockRecord,
+	segment_index: int,
 	extent: float,
 	count: int,
 	profile: FoundationParcelGenerationProfile
 ) -> PackedFloat32Array:
-	var result := PackedFloat32Array([0.0])
+	var positions := PackedFloat32Array([0.0])
 	var base_width := extent / float(count)
 	for index in range(1, count):
-		var seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s:%d" % [profile.STREAM_SPLIT_SPACING, block.stable_id, index]))
+		var seed := FoundationSeed.derive(world.metadata.seed, StringName("%s:%s:%d:%d" % [
+			profile.STREAM_SPLIT_SPACING, block.stable_id, segment_index, index,
+		]))
 		var centered := float(seed % 2001) / 1000.0 - 1.0
-		var position := base_width * float(index) + centered * base_width * 0.18
-		position = clampf(position, result[result.size() - 1] + profile.point_quantization, extent - float(count - index) * profile.point_quantization)
-		result.append(position)
-	result.append(extent)
-	return result
+		var position := base_width * float(index) + centered * base_width * 0.12
+		position = clampf(
+			position,
+			positions[positions.size() - 1] + profile.point_quantization,
+			extent - float(count - index) * profile.point_quantization
+		)
+		positions.append(position)
+	positions.append(extent)
+	return positions
 
 
-static func _strip_polygon(bounds: Rect2, split_x: bool, start: float, finish: float, epsilon: float) -> PackedVector2Array:
-	var minimum := bounds.position - Vector2.ONE * epsilon * 4.0
-	var maximum := bounds.end + Vector2.ONE * epsilon * 4.0
-	if split_x:
-		minimum.x = bounds.position.x + start
-		maximum.x = bounds.position.x + finish
-	else:
-		minimum.y = bounds.position.y + start
-		maximum.y = bounds.position.y + finish
+static func _frontage_cell_polygon(
+	a: Vector2,
+	b: Vector2,
+	start: float,
+	finish: float,
+	depth: float,
+	block_is_counter_clockwise: bool,
+	epsilon: float
+) -> PackedVector2Array:
+	var tangent := (b - a).normalized()
+	var inward := Vector2(-tangent.y, tangent.x)
+	if not block_is_counter_clockwise:
+		inward = -inward
+	var first := a + tangent * start
+	var second := a + tangent * finish
 	return PackedVector2Array([
-		minimum, Vector2(maximum.x, minimum.y), maximum, Vector2(minimum.x, maximum.y),
+		first - inward * epsilon * 4.0,
+		second - inward * epsilon * 4.0,
+		second + inward * depth,
+		first + inward * depth,
 	])
+
+
+static func _has_frontage_on_segment(
+	references: Array[FoundationParcelFrontageReference],
+	segment_index: int
+) -> bool:
+	for reference in references:
+		if reference.block_boundary_segment_index == segment_index:
+			return true
+	return false
+
+
+static func _subtract_components(
+	components: Array[PackedVector2Array],
+	cutter: PackedVector2Array,
+	profile: FoundationParcelGenerationProfile,
+	result: FoundationParcelGenerationResult
+) -> Array[PackedVector2Array]:
+	var remaining: Array[PackedVector2Array] = []
+	for component in components:
+		result.subdivision_operation_count += 1
+		for raw in Geometry2D.clip_polygons(component, cutter):
+			for canonical in _split_repeated_vertex_components(raw, profile):
+				remaining.append(canonical)
+	remaining.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+		return boundary_key(a, profile) < boundary_key(b, profile)
+	)
+	return remaining
+
+
+static func _split_repeated_vertex_components(
+	boundary: PackedVector2Array,
+	profile: FoundationParcelGenerationProfile
+) -> Array[PackedVector2Array]:
+	var canonical := canonicalize_boundary(boundary, profile)
+	var components: Array[PackedVector2Array] = []
+	if canonical.size() < 3 or absf(FoundationBlockRecord._signed_area(canonical)) <= profile.geometric_epsilon:
+		return components
+	for first_index in range(canonical.size()):
+		for second_index in range(first_index + 2, canonical.size()):
+			if first_index == 0 and second_index == canonical.size() - 1:
+				continue
+			if canonical[first_index].distance_to(canonical[second_index]) > profile.geometric_epsilon:
+				continue
+			var first_loop := PackedVector2Array()
+			for index in range(first_index, second_index):
+				first_loop.append(canonical[index])
+			var second_loop := PackedVector2Array()
+			for index in range(second_index, canonical.size()):
+				second_loop.append(canonical[index])
+			for index in range(0, first_index):
+				second_loop.append(canonical[index])
+			components.append_array(_split_repeated_vertex_components(first_loop, profile))
+			components.append_array(_split_repeated_vertex_components(second_loop, profile))
+			return components
+	components.append(canonical)
+	return components
 
 
 static func _derive_frontage(
@@ -217,7 +383,9 @@ static func _create_parcel(
 	block: FoundationBlockRecord,
 	boundary: PackedVector2Array,
 	references: Array[FoundationParcelFrontageReference],
-	profile: FoundationParcelGenerationProfile
+	profile: FoundationParcelGenerationProfile,
+	frontage_row_index := -1,
+	source_block_segment_index := -1
 ) -> FoundationParcelRecord:
 	var stable_id := _parcel_id(world, block.stable_id, boundary_key(boundary, profile), profile)
 	if world.get_record(stable_id) != null:
@@ -239,10 +407,24 @@ static func _create_parcel(
 			if reference.parcel_boundary_segment_index == primary_segment:
 				parcel.approximate_frontage_width += reference.frontage_length
 		parcel.approximate_depth = parcel.area / maxf(parcel.approximate_frontage_width, profile.geometric_epsilon)
+	parcel.approximate_aspect_ratio = FoundationParcelRecord._aspect_ratio(
+		parcel.approximate_frontage_width, parcel.approximate_depth
+	)
+	parcel.frontage_row_index = frontage_row_index
+	parcel.source_block_segment_index = source_block_segment_index
 	var direct_frontage := parcel.approximate_frontage_width >= profile.minimum_frontage
 	var area_eligible := parcel.area >= profile.minimum_parcel_area and parcel.area <= profile.maximum_parcel_area
-	var depth_eligible := parcel.approximate_depth >= profile.minimum_depth and parcel.approximate_depth <= profile.maximum_depth
-	parcel.buildable = direct_frontage and area_eligible and depth_eligible
+	var depth_eligible := parcel.approximate_depth >= profile.minimum_depth and (
+		profile.allow_long_form_parcels or parcel.approximate_depth <= profile.maximum_depth
+	)
+	var aspect_eligible := profile.allow_long_form_parcels or (
+		parcel.approximate_aspect_ratio <= profile.maximum_buildable_aspect_ratio
+	)
+	parcel.buildable = direct_frontage and area_eligible and depth_eligible and aspect_eligible
+	parcel.long_form = profile.allow_long_form_parcels and parcel.buildable and (
+		parcel.approximate_depth > profile.maximum_depth
+		or parcel.approximate_aspect_ratio > profile.maximum_buildable_aspect_ratio
+	)
 	if parcel.buildable:
 		parcel.access_state = FoundationParcelRecord.ACCESS_DIRECT
 		parcel.parcel_kind = FoundationParcelRecord.KIND_CORNER if profile.allow_corner_parcels and _has_corner_frontage(block, parcel, profile) else FoundationParcelRecord.KIND_STANDARD
@@ -255,7 +437,12 @@ static func _create_parcel(
 	parcel.source_pass = SOURCE_PASS
 	parcel.source_version = profile.generator_version
 	parcel.tags = PackedStringArray(["phase_4", "abstract_parcel", String(parcel.parcel_kind)])
-	parcel.metadata = {"boundary_key": boundary_key(boundary, profile)}
+	if parcel.long_form:
+		parcel.tags.append("long_form_exception")
+	parcel.metadata = {
+		"boundary_key": boundary_key(boundary, profile),
+		"layout_kind": "frontage_row" if frontage_row_index >= 0 else "center_remainder",
+	}
 	return parcel
 
 
@@ -348,13 +535,21 @@ static func _set_layer_metadata(
 	profile: FoundationParcelGenerationProfile,
 	result: FoundationParcelGenerationResult
 ) -> void:
+	var frontage_row_counts: Dictionary = {}
+	for block in world.get_blocks():
+		var rows: Dictionary = {}
+		for parcel in world.get_parcels():
+			if parcel.parent_id == block.stable_id and parcel.frontage_row_index >= 0:
+				rows[parcel.frontage_row_index] = true
+		frontage_row_counts[String(block.stable_id)] = rows.size()
 	world.get_layer(FoundationWorldData.PARCEL_LAYER).metadata = {
-		"format_version": 1,
+		"format_version": 2,
 		"source_pass": String(SOURCE_PASS),
 		"generator_version": profile.generator_version,
 		"profile": profile.to_dict(),
 		"diagnostics": result.diagnostics.duplicate(true),
 		"counts": result.to_dict(),
+		"frontage_row_counts": frontage_row_counts,
 	}
 
 

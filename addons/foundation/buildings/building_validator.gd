@@ -38,6 +38,15 @@ static func validate(
 			_add_issue(issues, building, &"below_minimum_footprint", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building footprint is below the configured minimum area.")
 		if building.coverage_ratio > active_profile.maximum_coverage_ratio + active_profile.geometric_epsilon:
 			_add_issue(issues, building, &"excessive_coverage", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building exceeds maximum parcel coverage.")
+		if not active_profile.allow_long_form_massing:
+			if building.frontage_span > active_profile.maximum_frontage_span + active_profile.geometric_epsilon:
+				_add_issue(issues, building, &"excessive_frontage_span", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building exceeds the compact frontage-span limit.")
+			if building.footprint_depth > active_profile.maximum_footprint_depth + active_profile.geometric_epsilon:
+				_add_issue(issues, building, &"excessive_footprint_depth", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building exceeds the compact footprint-depth limit.")
+			if building.footprint_aspect_ratio > active_profile.maximum_footprint_aspect_ratio + active_profile.geometric_epsilon:
+				_add_issue(issues, building, &"excessive_footprint_aspect", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building exceeds the compact footprint aspect-ratio limit.")
+			if building.long_form:
+				_add_issue(issues, building, &"unapproved_long_form_massing", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Long-form massing is present while the explicit exception is disabled.")
 		if building.floor_count <= 0 or building.floor_height <= 0.0 or building.height <= 0.0:
 			_add_issue(issues, building, &"invalid_massing_height", FoundationBuildingValidationIssue.SEVERITY_ERROR, "Building massing height and floors must be positive.")
 		elif not is_equal_approx(building.height, float(building.floor_count) * building.floor_height):

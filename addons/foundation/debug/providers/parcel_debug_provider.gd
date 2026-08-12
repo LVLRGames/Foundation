@@ -38,9 +38,10 @@ func append_debug(
 			builder.add_line(Vector3(first.x, elevation + 0.05, first.y), Vector3(second.x, elevation + 0.05, second.y), purpose)
 		builder.add_text(
 			Vector3(parcel.label_point.x, elevation + 1.6, parcel.label_point.y),
-			"%s\n%s | A %.1f\nF %.1f D %.1f | %s" % [
+			"%s\n%s | A %.1f\nF %.1f D %.1f R %.2f\nRow %d | %s" % [
 				parcel.stable_id, parcel.parcel_kind, parcel.area,
-				parcel.approximate_frontage_width, parcel.approximate_depth,
+				parcel.approximate_frontage_width, parcel.approximate_depth, parcel.approximate_aspect_ratio,
+				parcel.frontage_row_index,
 				parcel.access_state,
 			],
 			outline_purpose

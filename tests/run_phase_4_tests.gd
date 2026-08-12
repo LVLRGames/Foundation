@@ -10,6 +10,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var baseline := _test_rectangle_determinism_and_seed_variation()
 	var world := baseline as FoundationWorldData
+	_test_frontage_row_limit_and_compactness()
 	_test_concave_and_coverage()
 	_test_negative_spatial_ownership()
 	_test_remainder_and_validation()
@@ -61,6 +62,61 @@ func _test_rectangle_determinism_and_seed_variation() -> FoundationWorldData:
 	_check(_input_snapshot(first) == inputs_before, "parcel subdivision does not mutate blocks, roads, logical roads, or anchors")
 	_check(first_result.subdivision_operation_count <= FoundationParcelGenerationProfile.new().maximum_subdivision_operations, "subdivision reports bounded deterministic operation work")
 	return first
+
+
+func _test_frontage_row_limit_and_compactness() -> void:
+	var world := _make_world(4151, Rect2(-256.0, -256.0, 512.0, 512.0))
+	var block := _add_block_fixture(world, &"four_rows", PackedVector2Array([
+		Vector2(-130.0, -95.0), Vector2(130.0, -95.0),
+		Vector2(130.0, 95.0), Vector2(-130.0, 95.0),
+	]))
+	var profile := FoundationParcelGenerationProfile.new()
+	var result := FoundationParcelSubdivider.generate(world, profile)
+	var rows: Dictionary = {}
+	var row_segments: Dictionary = {}
+	var compact_buildable := true
+	var real_frontage_provenance := true
+	var has_center_remainder := false
+	for parcel in world.get_parcels():
+		if parcel.frontage_row_index >= 0:
+			rows[parcel.frontage_row_index] = true
+			row_segments[parcel.frontage_row_index] = parcel.source_block_segment_index
+			var source_found := false
+			for reference in parcel.frontage_references:
+				source_found = source_found or reference.block_boundary_segment_index == parcel.source_block_segment_index
+			real_frontage_provenance = real_frontage_provenance and source_found
+		if parcel.buildable:
+			compact_buildable = compact_buildable and (
+				parcel.approximate_depth <= profile.maximum_depth + profile.geometric_epsilon
+				and parcel.approximate_aspect_ratio <= profile.maximum_buildable_aspect_ratio + profile.geometric_epsilon
+				and not parcel.long_form
+			)
+		if parcel.frontage_row_index < 0:
+			has_center_remainder = has_center_remainder or (
+				not parcel.buildable and parcel.access_state != FoundationParcelRecord.ACCESS_DIRECT
+			)
+	var opposing_pairs := rows.size() == 4
+	for first_row in [0, 2]:
+		if not row_segments.has(first_row) or not row_segments.has(first_row + 1):
+			opposing_pairs = false
+			continue
+		var first_segment := int(row_segments[first_row])
+		var second_segment := int(row_segments[first_row + 1])
+		var first_direction := (
+			block.outer_boundary[(first_segment + 1) % block.outer_boundary.size()]
+			- block.outer_boundary[first_segment]
+		).normalized()
+		var second_direction := (
+			block.outer_boundary[(second_segment + 1) % block.outer_boundary.size()]
+			- block.outer_boundary[second_segment]
+		).normalized()
+		opposing_pairs = opposing_pairs and first_direction.dot(second_direction) < -0.99
+	_check(result.success and rows.size() == profile.maximum_frontage_rows, "large four-street block uses at most four road-facing parcel rows")
+	_check(opposing_pairs, "frontage rows are selected as deterministic opposing street pairs where geometry permits")
+	_check(real_frontage_provenance, "every frontage-row parcel retains its selected real road-boundary source")
+	_check(compact_buildable, "default buildable parcels obey bounded depth and compact aspect limits")
+	_check(has_center_remainder, "unreached block centers remain explicit non-buildable access-required land")
+	_check(_coverage_is_valid(world, profile), "frontage bands and center remainders preserve complete non-overlapping coverage")
 
 
 func _test_concave_and_coverage() -> void:
@@ -144,7 +200,10 @@ func _test_authored_regeneration_and_serialization() -> void:
 		moved.append(point + Vector2(420.0, 0.0))
 	parcel.set_boundary(moved)
 	FoundationParcelSubdivider.generate(world)
-	_check(world.get_record(parcel.stable_id) == parcel and parcel.owning_chunks.has(Vector2i(3, 0)), "overridden parcel survives and refreshes authored spatial ownership")
+	var refreshed_ownership := not parcel.owning_chunks.is_empty()
+	for chunk in parcel.owning_chunks:
+		refreshed_ownership = refreshed_ownership and parcel in world.get_records_in_chunk(chunk, FoundationWorldData.PARCEL_LAYER)
+	_check(world.get_record(parcel.stable_id) == parcel and parcel.world_bounds.position.x > 300.0 and refreshed_ownership, "overridden parcel survives and refreshes authored spatial ownership")
 	var restored := FoundationWorldData.from_dict(world.to_dict())
 	_check(_parcel_snapshot(restored) == _parcel_snapshot(world), "typed parcel geometry, frontage provenance, states, metrics, and ownership serialize round-trip")
 	var provenance_round_tripped := false
@@ -220,13 +279,31 @@ func _test_demo_contract() -> void:
 	var debug_view := demo.get_node("FoundationWorld/FoundationDebugView") as FoundationDebugView
 	var has_concave_parent := false
 	var has_access_example := false
+	var row_counts_by_block: Dictionary = {}
+	var compact_defaults := true
 	for parcel in world_node.world_data.get_parcels():
 		var parent := world_node.world_data.get_record(parcel.parent_id) as FoundationBlockRecord
 		has_concave_parent = has_concave_parent or (parent != null and _is_concave(parent.outer_boundary))
 		has_access_example = has_access_example or parcel.access_state != FoundationParcelRecord.ACCESS_DIRECT
+		if parcel.frontage_row_index >= 0:
+			if not row_counts_by_block.has(parcel.parent_id):
+				row_counts_by_block[parcel.parent_id] = {}
+			row_counts_by_block[parcel.parent_id][parcel.frontage_row_index] = true
+		compact_defaults = compact_defaults and (
+			not parcel.buildable
+			or (
+				parcel.approximate_depth <= 48.001
+				and parcel.approximate_aspect_ratio <= 3.001
+				and not parcel.long_form
+			)
+		)
+	var demo_row_limit := true
+	for block_id in row_counts_by_block:
+		demo_row_limit = demo_row_limit and row_counts_by_block[block_id].size() <= 4
 	_check(not world_node.world_data.get_parcels().is_empty(), "Phase 4 demo generates parcel records")
 	_check(has_concave_parent, "Phase 4 demo parcelizes the existing concave block")
 	_check(has_access_example, "Phase 4 demo visibly includes an explicit access-required or remainder parcel")
+	_check(demo_row_limit and compact_defaults, "Phase 4 demo contains no more than four compact street-facing rows per block")
 	_check(debug_view.show_parcels, "Phase 4 demo exposes the parcel/frontage overlay")
 	var before := _parcel_snapshot(world_node.world_data)
 	demo.get_node("%StageOptions").select(3)

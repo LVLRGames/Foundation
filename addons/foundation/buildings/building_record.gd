@@ -3,7 +3,7 @@ extends FoundationSpatialRecord
 
 ## Canonical parcel-backed footprint and primitive extruded massing. Owns no scene nodes.
 
-const BUILDING_FORMAT_VERSION := 1
+const BUILDING_FORMAT_VERSION := 2
 const RECORD_KIND: StringName = &"building"
 const ENTITY_TYPE: StringName = &"building"
 const LAYER_TYPE: StringName = &"buildings"
@@ -23,6 +23,10 @@ var centroid := Vector2.ZERO
 var label_point := Vector2.ZERO
 var coverage_ratio := 0.0
 var target_coverage_ratio := 0.0
+var frontage_span := 0.0
+var footprint_depth := 0.0
+var footprint_aspect_ratio := 0.0
+var long_form := false
 var front_setback := 0.0
 var side_setback := 0.0
 var rear_setback := 0.0
@@ -93,6 +97,10 @@ func to_dict() -> Dictionary:
 	data["label_point"] = {"x": label_point.x, "y": label_point.y}
 	data["coverage_ratio"] = coverage_ratio
 	data["target_coverage_ratio"] = target_coverage_ratio
+	data["frontage_span"] = frontage_span
+	data["footprint_depth"] = footprint_depth
+	data["footprint_aspect_ratio"] = footprint_aspect_ratio
+	data["long_form"] = long_form
 	data["front_setback"] = front_setback
 	data["side_setback"] = side_setback
 	data["rear_setback"] = rear_setback
@@ -145,6 +153,10 @@ static func from_dict(data: Dictionary) -> FoundationBuildingRecord:
 	)
 	building.coverage_ratio = float(data.get("coverage_ratio", 0.0))
 	building.target_coverage_ratio = float(data.get("target_coverage_ratio", building.coverage_ratio))
+	building.frontage_span = float(data.get("frontage_span", 0.0))
+	building.footprint_depth = float(data.get("footprint_depth", 0.0))
+	building.footprint_aspect_ratio = float(data.get("footprint_aspect_ratio", 0.0))
+	building.long_form = bool(data.get("long_form", false))
 	building.front_setback = float(data.get("front_setback", 0.0))
 	building.side_setback = float(data.get("side_setback", 0.0))
 	building.rear_setback = float(data.get("rear_setback", 0.0))

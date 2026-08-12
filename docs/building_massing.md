@@ -9,6 +9,7 @@ Phase 5 turns eligible Phase 4 parcels into compact, renderer-independent `Found
 - a stable deterministic ID and parent parcel/block identity;
 - a canonical counter-clockwise XZ footprint, bounds, area, perimeter, centroid, and stable interior label point;
 - actual and seeded target parcel-coverage ratios;
+- frontage-oriented footprint span, depth, aspect ratio, and explicit long-form-exception state;
 - front, side, rear, and corner-side setback inputs;
 - the primary parcel-frontage segment plus source road-edge and logical-road identity;
 - an outward frontage direction and stable orientation angle;
@@ -25,13 +26,15 @@ Generation proceeds deterministically:
 
 1. inset the parcel by the configured side setback with `Geometry2D`;
 2. clip against a frontage-oriented strip that enforces primary-front and rear depths;
-3. clip corner parcels behind each secondary road-frontage setback;
-4. retain the largest valid component using area and canonical-boundary tie-breaks;
-5. apply a bounded offset search until the seeded target coverage is met;
-6. quantize, canonicalize, and validate the footprint;
-7. derive floor count from its independent named seed stream and store a flat-roof extrusion envelope.
+3. cap default depth at 40 m and default street-parallel span at 48 m;
+4. clip corner parcels behind each secondary road-frontage setback;
+5. retain the largest valid component using area and canonical-boundary tie-breaks;
+6. enforce a default maximum 3:1 frontage/depth aspect ratio;
+7. apply a bounded offset search until the seeded target coverage is met, then recheck compactness;
+8. quantize, canonicalize, and validate the footprint;
+9. derive floor count from its independent named seed stream and store a flat-roof extrusion envelope.
 
-This works with concave parcels and never substitutes a parcel bounding rectangle for the actual parcel polygon. If offsets or coverage constraints leave less than the minimum footprint area, generation records a located `setbacks_exhaust_parcel` diagnostic and creates no false building. Non-buildable, access-required, and remainder parcels receive explicit skip diagnostics.
+This works with concave parcels and never substitutes a parcel bounding rectangle for the actual parcel polygon. `allow_long_form_massing` is an explicit, non-default profile exception; generated records tag and serialize any massing that uses it to exceed compact limits. If offsets or coverage constraints leave less than the minimum footprint area, generation records a located `setbacks_exhaust_parcel` diagnostic and creates no false building. Non-buildable, access-required, and remainder parcels receive explicit skip diagnostics.
 
 The named seed streams are:
 
@@ -57,6 +60,7 @@ World manifests restore typed building records and layer metadata, including the
 - degenerate or self-intersecting footprints;
 - footprints outside their parent parcel;
 - below-minimum area or excessive coverage;
+- excessive frontage span, footprint depth, or aspect ratio without a long-form opt-in;
 - invalid, inconsistent, or excessive height/floor massing;
 - missing or inconsistent primary-frontage road/logical-road provenance.
 
