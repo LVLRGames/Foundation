@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 9 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading for roads and building pads, bridge-span/approach planning, and chunk streaming with terrain visual LOD. Grading plans remain Node-free, deterministic, serializable, independently validated, and explicitly applied or safely reverted against the authoritative terrain arrays.
+The current Phase 10 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, and chunk streaming with terrain visual LOD. Parking facilities and public features remain Node-free, deterministic, serializable, independently validated, spatially indexed planning data.
 
-Addresses, interiors, prefabs, production building/road/bridge meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, parking/public-feature placement, and vegetation are intentionally not implemented.
+Addresses, interiors, prefabs, production building/road/bridge/parking/public-space meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, full authoring tools, utilities, and vegetation are intentionally not implemented.
+
+## Run the Phase 10 parking/public-feature demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Parking demand, facilities, stalls, and access** and **Parks, plazas, transit, landmark, and civic sites**.
+3. Inspect residual parcel footprints, ordered stalls/aisles, accessible spaces, demand/supply labels, service radii, and anchor links.
+4. Select **Parking and public features** and regenerate to confirm same-input stability; select individual records to exercise generated/locked/overridden states.
+
+Phase 10 owns abstract site/layout data only. It does not create production markings, props, furniture, meshes, materials, collision, driveable connections, vehicle/pedestrian navigation, or traffic simulation.
 
 ## Run the Phase 9 terrain-grading demo
 
@@ -147,11 +156,22 @@ assert(grading_result.success)
 grading_result = FoundationTerrainGrader.apply_plan(world_data, terrain, grading_result.plan)
 assert(grading_result.success)
 
+var site_profile := FoundationSiteFeatureGenerationProfile.new()
+var site_result := FoundationSiteFeatureGenerator.generate(
+    world_data,
+    site_profile,
+    terrain,
+    terrain_origin_cell
+)
+assert(site_result.success)
+
 var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
 var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
 var facades: Array[FoundationFacadeRecord] = world_data.get_facades()
 var districts: Array[FoundationDistrictRecord] = world_data.get_districts()
+var parking: Array[FoundationParkingFacilityRecord] = world_data.get_parking_facilities()
+var public_features: Array[FoundationPublicFeatureRecord] = world_data.get_public_features()
 var signed_chunk_blocks := world_data.get_records_in_chunk(Vector2i(-1, 0), &"blocks")
 
 var streaming_profile := FoundationChunkStreamingProfile.new()
@@ -182,10 +202,13 @@ var parcels := world_data.get_parcels()
 var buildings := world_data.get_buildings()
 var facades := world_data.get_facades()
 var districts := world_data.get_districts()
+var parking := world_data.get_parking_facilities()
+var public_features := world_data.get_public_features()
 var parcel_district := world_data.get_district_for_parcel(parcels[0].stable_id)
+var parcel_parking := world_data.get_parking_for_parcel(parcels[0].stable_id)
 ```
 
-Anchors, roads, blocks, parcels, buildings, facades, and districts remain authoritative immutable inputs to grading. Phase 9 changes only terrain vertices through an explicit plan/application boundary while preserving original/target heights, provenance, operation lineage, and a safe revert contract. Addresses, production architecture/roads/bridges, navigable entrances, parking/public geometry, and physical access remain later contracts.
+Anchors, roads, blocks, parcels, buildings, facades, districts, terrain, and grading plans remain immutable inputs to Phase 10 generation. The new layers own parking demand/layout and public-site placement only. Addresses, production architecture/roads/bridges/parking/public spaces, driveable connections, navigation, traffic, utilities, and full authored overrides remain later contracts.
 
 ## Validation
 
@@ -200,8 +223,9 @@ Anchors, roads, blocks, parcels, buildings, facades, and districts remain author
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_7_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_8_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_9_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_10_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/terrain_grading.md](docs/terrain_grading.md) for the Phase 9 planning, application, reversion, validation, bridge, and exclusion contract. Districts remain documented in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/parking_public_features.md](docs/parking_public_features.md) for the Phase 10 data, generation, authorship, validation, serialization, debug, and exclusion contract. Terrain grading remains documented in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.

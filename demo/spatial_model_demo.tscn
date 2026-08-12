@@ -109,11 +109,11 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=328452493]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Phase 9 — Terrain Grading"
+text = "Phase 10 — Parking and Public Features"
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=1333384478]
 layout_mode = 2
-text = "Deterministic road corridors, flat building pads, and bridge approaches with explicit reversible terrain edits; no production road/bridge meshes, parking, traffic, or navigation."
+text = "Phase 10 consumes the applied Phase 9 terrain-grading plan to place deterministic parking layouts plus parks, plazas, transit, landmark, and civic sites; abstract data only, with no production meshes, traffic, or navigation."
 autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=913024322]
@@ -270,6 +270,18 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Terrain grading, pads, bridge spans, and cut/fill"
+
+[node name="ParkingToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Parking demand, facilities, stalls, and access"
+
+[node name="PublicFeatureToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Parks, plazas, transit, landmark, and civic sites"
 
 [node name="RelationshipToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content" unique_id=940581382]
 unique_name_in_owner = true

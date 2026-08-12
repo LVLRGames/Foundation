@@ -17,6 +17,8 @@ const PARCEL_LAYER: StringName = FoundationParcelRecord.LAYER_TYPE
 const BUILDING_LAYER: StringName = FoundationBuildingRecord.LAYER_TYPE
 const FACADE_LAYER: StringName = FoundationFacadeRecord.LAYER_TYPE
 const DISTRICT_LAYER: StringName = FoundationDistrictRecord.LAYER_TYPE
+const PARKING_FACILITY_LAYER: StringName = FoundationParkingFacilityRecord.LAYER_TYPE
+const PUBLIC_FEATURE_LAYER: StringName = FoundationPublicFeatureRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -50,6 +52,8 @@ func initialize_default_layers() -> void:
 	register_layer_type(BUILDING_LAYER)
 	register_layer_type(FACADE_LAYER)
 	register_layer_type(DISTRICT_LAYER)
+	register_layer_type(PARKING_FACILITY_LAYER)
+	register_layer_type(PUBLIC_FEATURE_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -230,6 +234,92 @@ func get_districts() -> Array[FoundationDistrictRecord]:
 	for record in layer.get_records():
 		if record is FoundationDistrictRecord:
 			result.append(record as FoundationDistrictRecord)
+	return result
+
+
+func get_parking_facilities() -> Array[FoundationParkingFacilityRecord]:
+	var result: Array[FoundationParkingFacilityRecord] = []
+	var layer := get_layer(PARKING_FACILITY_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationParkingFacilityRecord:
+			result.append(record as FoundationParkingFacilityRecord)
+	return result
+
+
+func get_public_features() -> Array[FoundationPublicFeatureRecord]:
+	var result: Array[FoundationPublicFeatureRecord] = []
+	var layer := get_layer(PUBLIC_FEATURE_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationPublicFeatureRecord:
+			result.append(record as FoundationPublicFeatureRecord)
+	return result
+
+
+func get_parking_for_parcel(parcel_id: StringName) -> Array[FoundationParkingFacilityRecord]:
+	var result: Array[FoundationParkingFacilityRecord] = []
+	for parking in get_parking_facilities():
+		if parking.parent_id == parcel_id:
+			result.append(parking)
+	return result
+
+
+func get_parking_for_building(building_id: StringName) -> Array[FoundationParkingFacilityRecord]:
+	var result: Array[FoundationParkingFacilityRecord] = []
+	for parking in get_parking_facilities():
+		if parking.parent_building_id == building_id:
+			result.append(parking)
+	return result
+
+
+func get_parking_for_block(block_id: StringName) -> Array[FoundationParkingFacilityRecord]:
+	var result: Array[FoundationParkingFacilityRecord] = []
+	for parking in get_parking_facilities():
+		if parking.parent_block_id == block_id:
+			result.append(parking)
+	return result
+
+
+func get_parking_for_district(district_id: StringName) -> Array[FoundationParkingFacilityRecord]:
+	var result: Array[FoundationParkingFacilityRecord] = []
+	for parking in get_parking_facilities():
+		if parking.district_id == district_id:
+			result.append(parking)
+	return result
+
+
+func get_public_features_for_parcel(parcel_id: StringName) -> Array[FoundationPublicFeatureRecord]:
+	var result: Array[FoundationPublicFeatureRecord] = []
+	for feature in get_public_features():
+		if feature.parent_id == parcel_id:
+			result.append(feature)
+	return result
+
+
+func get_public_features_for_block(block_id: StringName) -> Array[FoundationPublicFeatureRecord]:
+	var result: Array[FoundationPublicFeatureRecord] = []
+	for feature in get_public_features():
+		if feature.parent_block_id == block_id:
+			result.append(feature)
+	return result
+
+
+func get_public_features_for_district(district_id: StringName) -> Array[FoundationPublicFeatureRecord]:
+	var result: Array[FoundationPublicFeatureRecord] = []
+	for feature in get_public_features():
+		if feature.district_id == district_id:
+			result.append(feature)
+	return result
+
+
+func get_public_features_for_anchor(anchor_id: StringName) -> Array[FoundationPublicFeatureRecord]:
+	var result: Array[FoundationPublicFeatureRecord] = []
+	for feature in get_public_features():
+		if feature.source_anchor_id == anchor_id:
+			result.append(feature)
 	return result
 
 

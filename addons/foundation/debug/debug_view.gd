@@ -23,6 +23,8 @@ extends Node3D
 @export var show_facades := true
 @export var show_districts := true
 @export var show_terrain_grading := true
+@export var show_parking_facilities := true
+@export var show_public_features := true
 @export var show_streaming := false
 @export var show_relationships := true
 @export var selected_record_id: StringName = &""
@@ -106,6 +108,8 @@ func _sync_layer_visibility() -> void:
 	layer_registry.set_layer_enabled(&"facades", show_facades)
 	layer_registry.set_layer_enabled(&"districts", show_districts)
 	layer_registry.set_layer_enabled(&"terrain_grading", show_terrain_grading)
+	layer_registry.set_layer_enabled(&"parking_facilities", show_parking_facilities)
+	layer_registry.set_layer_enabled(&"public_features", show_public_features)
 	layer_registry.set_layer_enabled(&"streaming", show_streaming)
 	layer_registry.set_layer_enabled(&"relationships", show_relationships)
 
