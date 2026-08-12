@@ -16,6 +16,7 @@ var parcel_result: FoundationParcelGenerationResult
 var building_result: FoundationBuildingGenerationResult
 var facade_result: FoundationFacadeGenerationResult
 var district_result: FoundationDistrictGenerationResult
+var grading_result: FoundationTerrainGradingResult
 
 
 func _ready() -> void:
@@ -30,6 +31,9 @@ func _ready() -> void:
 	building_result = FoundationBuildingGenerator.generate(world.world_data)
 	facade_result = FoundationFacadeGenerator.generate(world.world_data)
 	district_result = FoundationDistrictGenerator.generate(world.world_data)
+	grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
+	if grading_result.success:
+		grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -43,6 +47,7 @@ func _ready() -> void:
 	debug_view.show_buildings = %BuildingToggle.button_pressed
 	debug_view.show_facades = %FacadeToggle.button_pressed
 	debug_view.show_districts = %DistrictToggle.button_pressed
+	debug_view.show_terrain_grading = %GradingToggle.button_pressed
 	debug_view.rebuild()
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -299,6 +304,7 @@ func _bind_controls() -> void:
 	%BuildingToggle.toggled.connect(_layer_toggled.bind(&"buildings"))
 	%FacadeToggle.toggled.connect(_layer_toggled.bind(&"facades"))
 	%DistrictToggle.toggled.connect(_layer_toggled.bind(&"districts"))
+	%GradingToggle.toggled.connect(_layer_toggled.bind(&"terrain_grading"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -345,6 +351,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"buildings": debug_view.show_buildings = enabled
 		&"facades": debug_view.show_facades = enabled
 		&"districts": debug_view.show_districts = enabled
+		&"terrain_grading": debug_view.show_terrain_grading = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -368,13 +375,14 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 through Phase 8")
+	%StageOptions.add_item("Full Phase 2 through Phase 9")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
 	%StageOptions.add_item("Building footprints + massing")
 	%StageOptions.add_item("Modular facade grammar")
 	%StageOptions.add_item("District generation + use policy")
+	%StageOptions.add_item("Terrain grading: roads, pads, bridges")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -382,6 +390,9 @@ func _configure_generation_controls() -> void:
 
 
 func _regenerate_selected_stage() -> void:
+	if not _revert_grading_if_applied():
+		status_label.text = "Regeneration refused: applied terrain grading no longer matches the terrain."
+		return
 	match %StageOptions.selected:
 		0:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
@@ -397,6 +408,9 @@ func _regenerate_selected_stage() -> void:
 			building_result = FoundationBuildingGenerator.generate(world.world_data)
 			facade_result = FoundationFacadeGenerator.generate(world.world_data)
 			district_result = FoundationDistrictGenerator.generate(world.world_data)
+			grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
+			if grading_result.success:
+				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 		1:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
@@ -418,13 +432,20 @@ func _regenerate_selected_stage() -> void:
 		5:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
 			facade_result = FoundationFacadeGenerator.generate(world.world_data)
-		_:
+		6:
 			district_result = FoundationDistrictGenerator.generate(world.world_data)
+		_:
+			grading_result = FoundationTerrainGrader.create_plan(world.world_data, terrain_data, terrain_origin_cell)
+			if grading_result.success:
+				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 	_populate_record_options()
 	_rebuild_debug()
 
 
 func _clear_road_data() -> void:
+	if not _revert_grading_if_applied():
+		status_label.text = "Road clearing refused: applied terrain grading no longer matches the terrain."
+		return
 	FoundationDistrictGenerator.clear_generated(world.world_data)
 	FoundationFacadeGenerator.clear_generated(world.world_data)
 	FoundationBuildingGenerator.clear_generated(world.world_data)
@@ -439,6 +460,14 @@ func _clear_road_data() -> void:
 			world.world_data.unregister_record(block.stable_id)
 	_populate_record_options()
 	_rebuild_debug()
+
+
+func _revert_grading_if_applied() -> bool:
+	if terrain_data == null or world.world_data.terrain_grading_plan == null:
+		return true
+	if world.world_data.terrain_grading_plan.state == FoundationTerrainGradingPlan.STATE_APPLIED:
+		return FoundationTerrainGrader.revert_plan(world.world_data, terrain_data, world.world_data.terrain_grading_plan).success
+	return true
 
 
 func _apply_selected_state() -> void:

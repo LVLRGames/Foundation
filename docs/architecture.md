@@ -14,6 +14,8 @@ Phase 6 plans bounded chunk lifecycle and terrain visual LOD transitions without
 
 Phase 8 groups canonical blocks into Node-free district and land-use policy while leaving terrain and upstream city records unchanged; see [district_generation.md](district_generation.md).
 
+Phase 9 creates a deterministic Node-free terrain-grading plan from canonical roads and buildings, then applies or safely reverts that plan through the authoritative terrain API; see [terrain_grading.md](terrain_grading.md).
+
 Phase 7 projects deterministic modular facade grammar onto Phase 5 massing without creating production building meshes or mutating upstream records; see [facade_grammar.md](facade_grammar.md).
 
 ## Data first, rendering second

@@ -104,6 +104,13 @@ extends Resource
 @export var district_warning := Color("ffca28")
 @export var district_boundary := Color(1.0, 1.0, 1.0, 0.34)
 @export var district_seed_link := Color("80deea")
+@export var grading_road := Color("ffb74d")
+@export var grading_pad := Color("b39ddb")
+@export var grading_bridge := Color("4dd0e1")
+@export var grading_cut := Color("ef5350")
+@export var grading_fill := Color("66bb6a")
+@export var grading_warning := Color("ffca28")
+@export var grading_error := Color("f44336")
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -316,6 +323,22 @@ func color_for(purpose: StringName) -> Color:
 			return district_seed_link
 		&"district_fill_selected":
 			return selected
+		&"grading_road":
+			return grading_road
+		&"grading_pad", &"grading_pad_fill":
+			return grading_pad
+		&"grading_bridge", &"grading_bridge_approach":
+			return grading_bridge
+		&"grading_cut":
+			return grading_cut
+		&"grading_fill":
+			return grading_fill
+		&"grading_warning":
+			return grading_warning
+		&"grading_error":
+			return grading_error
+		&"grading_label":
+			return label
 		&"selected":
 			return selected
 		&"relationship":

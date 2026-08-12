@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 8 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, and chunk streaming with terrain visual LOD. District data remains Node-free and records stable block coverage, character, use policy, suitability evidence, upstream lineage, and planning targets while keeping scene presentation disposable.
+The current Phase 9 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, city-block extraction, frontage-aware parcel subdivision, primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading for roads and building pads, bridge-span/approach planning, and chunk streaming with terrain visual LOD. Grading plans remain Node-free, deterministic, serializable, independently validated, and explicitly applied or safely reverted against the authoritative terrain arrays.
 
-Addresses, interiors, prefabs, production building meshes/materials/collision, physical road geometry/intersections, traffic/navigation, terrain grading or pads, parking/public-feature placement, and vegetation are intentionally not implemented.
+Addresses, interiors, prefabs, production building/road/bridge meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, parking/public-feature placement, and vegetation are intentionally not implemented.
+
+## Run the Phase 9 terrain-grading demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Terrain grading, pads, bridge spans, and cut/fill** and optionally hide earlier overlays.
+3. Inspect road corridors, flat primary-road-aligned building pads, bridge decks/approaches, cut/fill edits, and diagnostics.
+4. Select **Terrain grading: roads, pads, bridges** and regenerate to confirm same-input planning and application.
+
+Planning is read-only. Application is explicit and revision-checked; safe reversion refuses to overwrite later terrain edits. Phase 9 mutates only authoritative terrain arrays and records provenance/dirty chunks. It does not create production geometry.
 
 ## Run the Phase 8 district-generation demo
 
@@ -127,6 +136,17 @@ var district_profile := FoundationDistrictGenerationProfile.new()
 var district_result := FoundationDistrictGenerator.generate(world_data, district_profile)
 assert(district_result.success)
 
+var grading_profile := FoundationTerrainGradingProfile.new()
+var grading_result := FoundationTerrainGrader.create_plan(
+    world_data,
+    terrain,
+    terrain_origin_cell,
+    grading_profile
+)
+assert(grading_result.success)
+grading_result = FoundationTerrainGrader.apply_plan(world_data, terrain, grading_result.plan)
+assert(grading_result.success)
+
 var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
 var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
@@ -165,7 +185,7 @@ var districts := world_data.get_districts()
 var parcel_district := world_data.get_district_for_parcel(parcels[0].stable_id)
 ```
 
-Terrain, anchors, roads, blocks, parcels, buildings, and facades remain authoritative inputs and are not mutated. Phase 8 districts assign abstract character, allowed uses, and planning targets through lineage queries; terrain grading, addresses, production architecture, navigable entrances, parking/public geometry, and physical access remain later contracts.
+Anchors, roads, blocks, parcels, buildings, facades, and districts remain authoritative immutable inputs to grading. Phase 9 changes only terrain vertices through an explicit plan/application boundary while preserving original/target heights, provenance, operation lineage, and a safe revert contract. Addresses, production architecture/roads/bridges, navigable entrances, parking/public geometry, and physical access remain later contracts.
 
 ## Validation
 
@@ -179,8 +199,9 @@ Terrain, anchors, roads, blocks, parcels, buildings, and facades remain authorit
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_6_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_7_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_8_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_9_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/district_generation.md](docs/district_generation.md) for the Phase 8 district, membership, use-policy, regeneration, validation, and exclusion contract. Facades remain documented in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/terrain_grading.md](docs/terrain_grading.md) for the Phase 9 planning, application, reversion, validation, bridge, and exclusion contract. Districts remain documented in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
