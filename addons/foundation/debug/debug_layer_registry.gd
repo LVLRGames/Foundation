@@ -9,6 +9,7 @@ const TERRAIN_GRADING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/p
 const PARKING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/parking_debug_provider.gd")
 const PUBLIC_FEATURE_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/public_feature_debug_provider.gd")
 const OVERRIDE_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/override_debug_provider.gd")
+const INTERIOR_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/interior_debug_provider.gd")
 
 var enabled := true
 var last_provider_invocations := 0
@@ -78,4 +79,5 @@ func register_phase_1_defaults() -> void:
 	register_provider(PARKING_DEBUG_PROVIDER.new())
 	register_provider(PUBLIC_FEATURE_DEBUG_PROVIDER.new())
 	register_provider(OVERRIDE_DEBUG_PROVIDER.new())
+	register_provider(INTERIOR_DEBUG_PROVIDER.new())
 	register_provider(STREAMING_DEBUG_PROVIDER.new(), false)

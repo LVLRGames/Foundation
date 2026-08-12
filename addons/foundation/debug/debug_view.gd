@@ -26,6 +26,8 @@ extends Node3D
 @export var show_parking_facilities := true
 @export var show_public_features := true
 @export var show_overrides := true
+@export var show_interiors := true
+@export var interior_floor_index := 0
 @export var show_streaming := false
 @export var show_relationships := true
 @export var selected_record_id: StringName = &""
@@ -69,6 +71,7 @@ func rebuild() -> int:
 	var builder := layer_registry.build(world_node.world_data, {
 		"selected_record_id": selected_record_id,
 		"selected_chunk": selected_chunk,
+		"interior_floor_index": interior_floor_index,
 	})
 	_render_builder(builder)
 	last_primitive_count = builder.get_primitive_count()
@@ -112,6 +115,7 @@ func _sync_layer_visibility() -> void:
 	layer_registry.set_layer_enabled(&"parking_facilities", show_parking_facilities)
 	layer_registry.set_layer_enabled(&"public_features", show_public_features)
 	layer_registry.set_layer_enabled(&"overrides", show_overrides)
+	layer_registry.set_layer_enabled(&"interiors", show_interiors)
 	layer_registry.set_layer_enabled(&"streaming", show_streaming)
 	layer_registry.set_layer_enabled(&"relationships", show_relationships)
 

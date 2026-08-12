@@ -22,6 +22,8 @@ Phase 10 consumes parcel/building/district/frontage/anchor intent to place deter
 
 Phase 11 applies explicit typed authoring instructions to Phase 1–10 spatial records, retains deterministic base/authored snapshots, and reconciles them after regeneration without silently running dependencies; see [authoring_overrides.md](authoring_overrides.md).
 
+Phase 12 adds opt-in interior records for explicitly selected buildings and floors. These nested floor, room, portal, and connector values consume building, facade-entrance, and district-use authority without creating runtime architecture; see [selective_interiors.md](selective_interiors.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.

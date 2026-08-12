@@ -19,6 +19,7 @@ const FACADE_LAYER: StringName = FoundationFacadeRecord.LAYER_TYPE
 const DISTRICT_LAYER: StringName = FoundationDistrictRecord.LAYER_TYPE
 const PARKING_FACILITY_LAYER: StringName = FoundationParkingFacilityRecord.LAYER_TYPE
 const PUBLIC_FEATURE_LAYER: StringName = FoundationPublicFeatureRecord.LAYER_TYPE
+const INTERIOR_LAYER: StringName = FoundationInteriorRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -54,6 +55,7 @@ func initialize_default_layers() -> void:
 	register_layer_type(DISTRICT_LAYER)
 	register_layer_type(PARKING_FACILITY_LAYER)
 	register_layer_type(PUBLIC_FEATURE_LAYER)
+	register_layer_type(INTERIOR_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -257,6 +259,24 @@ func get_public_features() -> Array[FoundationPublicFeatureRecord]:
 		if record is FoundationPublicFeatureRecord:
 			result.append(record as FoundationPublicFeatureRecord)
 	return result
+
+
+func get_interiors() -> Array[FoundationInteriorRecord]:
+	var result: Array[FoundationInteriorRecord] = []
+	var layer := get_layer(INTERIOR_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationInteriorRecord:
+			result.append(record as FoundationInteriorRecord)
+	return result
+
+
+func get_interior_for_building(building_id: StringName) -> FoundationInteriorRecord:
+	for interior in get_interiors():
+		if interior.parent_id == building_id:
+			return interior
+	return null
 
 
 func get_parking_for_parcel(parcel_id: StringName) -> Array[FoundationParkingFacilityRecord]:

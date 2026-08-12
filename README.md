@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 11.1 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, frontage-led parcel subdivision with at most four opposing street-facing rows per block, compact primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, and deterministic typed authoring overrides with conflict-safe reapply and bounded undo/redo.
+The current Phase 12 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, frontage-led parcel subdivision with at most four opposing street-facing rows per block, compact primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, deterministic typed authoring overrides, and opt-in room/portal topology for explicitly selected buildings and floors.
 
-Addresses, interiors, prefabs, production building/road/bridge/parking/public-space meshes, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, utilities, and vegetation are intentionally not implemented.
+Addresses, prefabs, production interior/building/road/bridge/parking/public-space meshes, furniture, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, utilities, and vegetation are intentionally not implemented.
+
+## Run the Phase 12 selective-interior demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Phase 12 selective rooms, portals, and connectors**. The demo intentionally generates a bounded two-building sample.
+3. Select an interior record and inspect a generated floor's rooms, portals, entrance lineage, and vertical connectors.
+4. In the editor, select a building and use **Generate Interior for Selected Building**. An empty selection never expands to city-wide generation.
+
+Phase 12 changes data only through an explicit building/floor request. An empty request is a true no-op.
 
 ## Run the Phase 11 authoring demo
 
@@ -239,8 +248,9 @@ Phase 11 can author Phase 1–10 spatial records while preserving generator-owne
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_9_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_10_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_11_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_12_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/authoring_overrides.md](docs/authoring_overrides.md) for the Phase 11 authority, reconciliation, history, validation, and exclusion contract. Phase 10 remains documented in [docs/parking_public_features.md](docs/parking_public_features.md), terrain grading in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/selective_interiors.md](docs/selective_interiors.md) for the Phase 12 selection, geometry, topology, validation, and exclusion contract. Phase 11 authoring remains documented in [docs/authoring_overrides.md](docs/authoring_overrides.md), Phase 10 in [docs/parking_public_features.md](docs/parking_public_features.md), terrain grading in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
