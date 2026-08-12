@@ -18,6 +18,7 @@ var facade_result: FoundationFacadeGenerationResult
 var district_result: FoundationDistrictGenerationResult
 var grading_result: FoundationTerrainGradingResult
 var site_feature_result: FoundationSiteFeatureGenerationResult
+var authoring_session := FoundationAuthoringSession.new()
 
 
 func _ready() -> void:
@@ -52,6 +53,7 @@ func _ready() -> void:
 	debug_view.show_terrain_grading = %GradingToggle.button_pressed
 	debug_view.show_parking_facilities = %ParkingToggle.button_pressed
 	debug_view.show_public_features = %PublicFeatureToggle.button_pressed
+	debug_view.show_overrides = %OverrideToggle.button_pressed
 	debug_view.rebuild()
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -322,11 +324,17 @@ func _bind_controls() -> void:
 	%GradingToggle.toggled.connect(_layer_toggled.bind(&"terrain_grading"))
 	%ParkingToggle.toggled.connect(_layer_toggled.bind(&"parking_facilities"))
 	%PublicFeatureToggle.toggled.connect(_layer_toggled.bind(&"public_features"))
+	%OverrideToggle.toggled.connect(_layer_toggled.bind(&"overrides"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
 	%ClearRoadButton.pressed.connect(_clear_road_data)
 	%ApplyStateButton.pressed.connect(_apply_selected_state)
+	%NudgeOverrideButton.pressed.connect(_nudge_selected_override)
+	%RevertOverrideButton.pressed.connect(_revert_selected_override)
+	%UndoAuthoringButton.pressed.connect(_undo_authoring)
+	%RedoAuthoringButton.pressed.connect(_redo_authoring)
+	%ReapplyOverridesButton.pressed.connect(_reapply_overrides)
 	record_options.item_selected.connect(_record_selected)
 
 
@@ -371,6 +379,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"terrain_grading": debug_view.show_terrain_grading = enabled
 		&"parking_facilities": debug_view.show_parking_facilities = enabled
 		&"public_features": debug_view.show_public_features = enabled
+		&"overrides": debug_view.show_overrides = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -394,7 +403,7 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 through Phase 10")
+	%StageOptions.add_item("Full Phase 2 through Phase 11")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
@@ -463,6 +472,7 @@ func _regenerate_selected_stage() -> void:
 				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 		_:
 			site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
+	authoring_session.reapply_all(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
 
@@ -500,13 +510,68 @@ func _apply_selected_state() -> void:
 	var record := world.world_data.get_record(debug_view.selected_record_id)
 	if record == null:
 		return
-	record.authorship_state = %StateOptions.selected as FoundationSpatialRecord.AuthorshipState
+	var target_id: StringName = record.target_record_id if record is FoundationOverrideRecord else record.stable_id
+	var result: FoundationAuthoringResult
+	match %StateOptions.selected as FoundationSpatialRecord.AuthorshipState:
+		FoundationSpatialRecord.AuthorshipState.GENERATED:
+			result = authoring_session.revert_override(world.world_data, target_id) if world.world_data.get_override_for_target(target_id) != null else authoring_session.unlock_record(world.world_data, target_id)
+		FoundationSpatialRecord.AuthorshipState.LOCKED:
+			if world.world_data.get_override_for_target(target_id) != null:
+				var reverted := authoring_session.revert_override(world.world_data, target_id)
+				if not reverted.success:
+					_show_authoring_result(reverted)
+					return
+			result = authoring_session.lock_record(world.world_data, target_id)
+		_:
+			var target := world.world_data.get_record(target_id)
+			result = authoring_session.apply_override(world.world_data, target_id, target.to_dict(), "Demo authored override") if target != null else null
+	_show_authoring_result(result)
+
+
+func _nudge_selected_override() -> void:
+	_show_authoring_result(authoring_session.translate_record(world.world_data, _selected_target_id(), Vector2(8.0, -4.0), "Demo nudge"))
+
+
+func _revert_selected_override() -> void:
+	_show_authoring_result(authoring_session.revert_override(world.world_data, _selected_target_id()))
+
+
+func _undo_authoring() -> void:
+	_show_authoring_result(authoring_session.undo(world.world_data))
+
+
+func _redo_authoring() -> void:
+	_show_authoring_result(authoring_session.redo(world.world_data))
+
+
+func _reapply_overrides() -> void:
+	_show_authoring_result(authoring_session.reapply_all(world.world_data))
+
+
+func _selected_target_id() -> StringName:
+	var record := world.world_data.get_record(debug_view.selected_record_id)
+	return record.target_record_id if record is FoundationOverrideRecord else debug_view.selected_record_id
+
+
+func _show_authoring_result(result: FoundationAuthoringResult) -> void:
+	_populate_record_options()
 	_rebuild_debug()
+	if result != null:
+		var impact := PackedStringArray()
+		for layer in result.affected_layers:
+			impact.append(String(layer))
+		status_label.text = ("OK: " if result.success else "ERROR: ") + result.message
+		if not impact.is_empty():
+			status_label.text += " Impact: %s. No generators ran." % ", ".join(impact)
 
 
 func _update_status() -> void:
 	var issue_count := road_result.validation_issues.size() if road_result != null else 0
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d parking | %d public | %d debug" % [
+	var authoring_conflicts := 0
+	for override_record in world.world_data.get_overrides():
+		if override_record.conflict_state != FoundationOverrideRecord.CONFLICT_NONE:
+			authoring_conflicts += 1
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d parking | %d public | %d overrides/%d conflicts | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -521,5 +586,7 @@ func _update_status() -> void:
 		world.world_data.get_districts().size(),
 		world.world_data.get_parking_facilities().size(),
 		world.world_data.get_public_features().size(),
+		world.world_data.get_overrides().size(),
+		authoring_conflicts,
 		debug_view.last_primitive_count,
 	]

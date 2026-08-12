@@ -52,7 +52,7 @@ Phase 8 does not implement:
 
 - terrain grading, road cuts/fills, pads, and bridge approaches (implemented in Phase 9; see [terrain_grading.md](terrain_grading.md)); retaining structures remain excluded;
 - parking and public-feature placement (implemented in Phase 10; see [parking_public_features.md](parking_public_features.md));
-- full override-authoring tools (Phase 11);
+- full override-authoring tools (implemented in Phase 11; see [authoring_overrides.md](authoring_overrides.md));
 - interiors, rooms, portals, or vertical circulation (Phase 12);
 - advanced lanes, traffic control, or traffic simulation (Phase 13);
 - addresses or final names;

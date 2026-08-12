@@ -109,11 +109,12 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=328452493]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Phase 10 — Parking and Public Features"
+text = "Phase 11 — Deterministic Authoring and Overrides"
+autowrap_mode = 2
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=1333384478]
 layout_mode = 2
-text = "Phase 10 consumes the applied Phase 9 terrain-grading plan to place deterministic parking layouts plus parks, plazas, transit, landmark, and civic sites; abstract data only, with no production meshes, traffic, or navigation."
+text = "Phase 11 adds durable authoring across Phase 1–10 spatial records, including Phase 9 grading inputs and Phase 10 site records; no interiors, traffic, or production content."
 autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=913024322]
@@ -289,6 +290,12 @@ layout_mode = 2
 button_pressed = true
 text = "Selected relationships"
 
+[node name="OverrideToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Phase 11 overrides, tombstones, and conflicts"
+
 [node name="StageControls" type="VBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=187767941]
 layout_mode = 2
 
@@ -330,6 +337,35 @@ fit_to_longest_item = false
 unique_name_in_owner = true
 layout_mode = 2
 text = "Apply state"
+
+[node name="AuthoringActions" type="GridContainer" parent="UI/Margin/Panel/Scroll/Content"]
+layout_mode = 2
+columns = 2
+
+[node name="NudgeOverrideButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthoringActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Override + nudge"
+
+[node name="RevertOverrideButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthoringActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Revert override"
+
+[node name="UndoAuthoringButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthoringActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Undo authoring"
+
+[node name="RedoAuthoringButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthoringActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Redo authoring"
+
+[node name="ReapplyOverridesButton" type="Button" parent="UI/Margin/Panel/Scroll/Content/AuthoringActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reapply overrides"
 
 [node name="RebuildButton" type="Button" parent="UI/Margin/Panel/Scroll/Content" unique_id=1143728332]
 unique_name_in_owner = true

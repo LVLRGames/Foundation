@@ -61,7 +61,7 @@ The Foundation Debug dock exposes parking/public toggles plus explicit **Generat
 
 Phase 10 does not implement:
 
-- the full override/authoring workflow planned for Phase 11;
+- the full override/authoring workflow implemented in Phase 11; see [authoring_overrides.md](authoring_overrides.md);
 - selective interiors planned for Phase 12;
 - advanced lanes, traffic control, or simulation planned for Phase 13;
 - production parking/public-space meshes, markings, materials, collision, furniture, vegetation, or prefabs;

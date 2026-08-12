@@ -20,6 +20,8 @@ Phase 9 creates a deterministic Node-free terrain-grading plan from canonical ro
 
 Phase 10 consumes parcel/building/district/frontage/anchor intent to place deterministic Node-free parking facilities and public sites without mutating Phase 1–9 data; see [parking_public_features.md](parking_public_features.md).
 
+Phase 11 applies explicit typed authoring instructions to Phase 1–10 spatial records, retains deterministic base/authored snapshots, and reconciles them after regeneration without silently running dependencies; see [authoring_overrides.md](authoring_overrides.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.
