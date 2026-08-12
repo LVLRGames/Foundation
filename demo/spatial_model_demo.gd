@@ -15,6 +15,7 @@ var block_result: FoundationBlockGenerationResult
 var parcel_result: FoundationParcelGenerationResult
 var building_result: FoundationBuildingGenerationResult
 var facade_result: FoundationFacadeGenerationResult
+var district_result: FoundationDistrictGenerationResult
 
 
 func _ready() -> void:
@@ -28,6 +29,7 @@ func _ready() -> void:
 	parcel_result = FoundationParcelSubdivider.generate(world.world_data)
 	building_result = FoundationBuildingGenerator.generate(world.world_data)
 	facade_result = FoundationFacadeGenerator.generate(world.world_data)
+	district_result = FoundationDistrictGenerator.generate(world.world_data)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -40,6 +42,7 @@ func _ready() -> void:
 	debug_view.show_parcels = %ParcelToggle.button_pressed
 	debug_view.show_buildings = %BuildingToggle.button_pressed
 	debug_view.show_facades = %FacadeToggle.button_pressed
+	debug_view.show_districts = %DistrictToggle.button_pressed
 	debug_view.rebuild()
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -295,6 +298,7 @@ func _bind_controls() -> void:
 	%ParcelToggle.toggled.connect(_layer_toggled.bind(&"parcels"))
 	%BuildingToggle.toggled.connect(_layer_toggled.bind(&"buildings"))
 	%FacadeToggle.toggled.connect(_layer_toggled.bind(&"facades"))
+	%DistrictToggle.toggled.connect(_layer_toggled.bind(&"districts"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -340,6 +344,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"parcels": debug_view.show_parcels = enabled
 		&"buildings": debug_view.show_buildings = enabled
 		&"facades": debug_view.show_facades = enabled
+		&"districts": debug_view.show_districts = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -363,12 +368,13 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 through Phase 7")
+	%StageOptions.add_item("Full Phase 2 through Phase 8")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
 	%StageOptions.add_item("Building footprints + massing")
 	%StageOptions.add_item("Modular facade grammar")
+	%StageOptions.add_item("District generation + use policy")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -378,6 +384,7 @@ func _configure_generation_controls() -> void:
 func _regenerate_selected_stage() -> void:
 	match %StageOptions.selected:
 		0:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			FoundationFacadeGenerator.clear_generated(world.world_data)
 			FoundationBuildingGenerator.clear_generated(world.world_data)
 			FoundationParcelSubdivider.clear_generated(world.world_data)
@@ -389,27 +396,36 @@ func _regenerate_selected_stage() -> void:
 			parcel_result = FoundationParcelSubdivider.generate(world.world_data)
 			building_result = FoundationBuildingGenerator.generate(world.world_data)
 			facade_result = FoundationFacadeGenerator.generate(world.world_data)
+			district_result = FoundationDistrictGenerator.generate(world.world_data)
 		1:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
 		2:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			FoundationFacadeGenerator.clear_generated(world.world_data)
 			FoundationBuildingGenerator.clear_generated(world.world_data)
 			FoundationParcelSubdivider.clear_generated(world.world_data)
 			block_result = FoundationBlockExtractor.generate(world.world_data)
 		3:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			FoundationFacadeGenerator.clear_generated(world.world_data)
 			FoundationBuildingGenerator.clear_generated(world.world_data)
 			parcel_result = FoundationParcelSubdivider.generate(world.world_data)
 		4:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			FoundationFacadeGenerator.clear_generated(world.world_data)
 			building_result = FoundationBuildingGenerator.generate(world.world_data)
-		_:
+		5:
+			FoundationDistrictGenerator.clear_generated(world.world_data)
 			facade_result = FoundationFacadeGenerator.generate(world.world_data)
+		_:
+			district_result = FoundationDistrictGenerator.generate(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
 
 
 func _clear_road_data() -> void:
+	FoundationDistrictGenerator.clear_generated(world.world_data)
 	FoundationFacadeGenerator.clear_generated(world.world_data)
 	FoundationBuildingGenerator.clear_generated(world.world_data)
 	FoundationParcelSubdivider.clear_generated(world.world_data)
@@ -435,7 +451,7 @@ func _apply_selected_state() -> void:
 
 func _update_status() -> void:
 	var issue_count := road_result.validation_issues.size() if road_result != null else 0
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d debug" % [
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -447,5 +463,6 @@ func _update_status() -> void:
 		world.world_data.get_parcels().size(),
 		world.world_data.get_buildings().size(),
 		world.world_data.get_facades().size(),
+		world.world_data.get_districts().size(),
 		debug_view.last_primitive_count,
 	]

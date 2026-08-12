@@ -16,6 +16,7 @@ const BLOCK_LAYER: StringName = FoundationBlockRecord.LAYER_TYPE
 const PARCEL_LAYER: StringName = FoundationParcelRecord.LAYER_TYPE
 const BUILDING_LAYER: StringName = FoundationBuildingRecord.LAYER_TYPE
 const FACADE_LAYER: StringName = FoundationFacadeRecord.LAYER_TYPE
+const DISTRICT_LAYER: StringName = FoundationDistrictRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -47,6 +48,7 @@ func initialize_default_layers() -> void:
 	register_layer_type(PARCEL_LAYER)
 	register_layer_type(BUILDING_LAYER)
 	register_layer_type(FACADE_LAYER)
+	register_layer_type(DISTRICT_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -217,6 +219,39 @@ func get_facades() -> Array[FoundationFacadeRecord]:
 		if record is FoundationFacadeRecord:
 			result.append(record as FoundationFacadeRecord)
 	return result
+
+
+func get_districts() -> Array[FoundationDistrictRecord]:
+	var result: Array[FoundationDistrictRecord] = []
+	var layer := get_layer(DISTRICT_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationDistrictRecord:
+			result.append(record as FoundationDistrictRecord)
+	return result
+
+
+func get_district_for_block(block_id: StringName) -> FoundationDistrictRecord:
+	for district in get_districts():
+		if district.member_block_ids.has(block_id):
+			return district
+	return null
+
+
+func get_district_for_parcel(parcel_id: StringName) -> FoundationDistrictRecord:
+	var parcel := get_record(parcel_id) as FoundationParcelRecord
+	return get_district_for_block(parcel.parent_id) if parcel != null else null
+
+
+func get_district_for_building(building_id: StringName) -> FoundationDistrictRecord:
+	var building := get_record(building_id) as FoundationBuildingRecord
+	return get_district_for_block(building.parent_block_id) if building != null else null
+
+
+func get_district_for_facade(facade_id: StringName) -> FoundationDistrictRecord:
+	var facade := get_record(facade_id) as FoundationFacadeRecord
+	return get_district_for_block(facade.parent_block_id) if facade != null else null
 
 
 func query_bounds(bounds: Rect2, layer_types: Array[StringName] = []) -> Array[FoundationSpatialRecord]:

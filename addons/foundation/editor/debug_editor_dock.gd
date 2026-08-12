@@ -2,7 +2,7 @@
 class_name FoundationDebugEditorDock
 extends ScrollContainer
 
-## Editor controls expose disposable debug presentation and explicit parcel/building actions.
+## Editor controls expose disposable debug presentation and explicit generation actions.
 
 var _editor_interface: EditorInterface
 var _content: VBoxContainer
@@ -73,6 +73,7 @@ func _build_interface() -> void:
 		[&"parcels", "Parcels, frontage, access state, and validation"],
 		[&"buildings", "Building footprints, primitive massing, and validation"],
 		[&"facades", "Modular facade grids, windows, entrances, and validation"],
+		[&"districts", "District coverage, character, use policy, and validation"],
 		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
 	]:
@@ -127,6 +128,14 @@ func _build_interface() -> void:
 	clear_facades.text = "Clear Generated Facades"
 	clear_facades.pressed.connect(_clear_facades_pressed)
 	_content.add_child(clear_facades)
+	var generate_districts := Button.new()
+	generate_districts.text = "Generate / Regenerate Districts"
+	generate_districts.pressed.connect(_generate_districts_pressed)
+	_content.add_child(generate_districts)
+	var clear_districts := Button.new()
+	clear_districts.text = "Clear Generated Districts"
+	clear_districts.pressed.connect(_clear_districts_pressed)
+	_content.add_child(clear_districts)
 
 
 func _connect_selection() -> void:
@@ -173,6 +182,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"parcels"].button_pressed = _view.show_parcels
 	_layer_toggles[&"buildings"].button_pressed = _view.show_buildings
 	_layer_toggles[&"facades"].button_pressed = _view.show_facades
+	_layer_toggles[&"districts"].button_pressed = _view.show_districts
 	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
@@ -226,6 +236,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"parcels": _view.show_parcels = value
 		&"buildings": _view.show_buildings = value
 		&"facades": _view.show_facades = value
+		&"districts": _view.show_districts = value
 		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
@@ -344,6 +355,16 @@ func _debug_selection_changed(index: int) -> void:
 					facade.entrance_module_id, facade.validation_state,
 					facade.owning_chunks, facade.owning_regions,
 				]
+			elif record is FoundationDistrictRecord:
+				var district := record as FoundationDistrictRecord
+				_selection_details.text = "%s\nCharacter: %s\nPrimary / allowed: %s / %s\nBlocks: %s\nArea: %.2f\nDensity / intensity: %.2f / %.2f\nHeight: %.1f-%.1f\nAnchor: %s\nPatterns: %s\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					district.stable_id, district.character_key, district.primary_use,
+					district.allowed_uses, district.member_block_ids, district.total_area,
+					district.target_density, district.target_intensity,
+					district.minimum_height, district.maximum_height,
+					district.source_anchor_id, district.source_pattern_ids,
+					district.validation_state, district.owning_chunks, district.owning_regions,
+				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
 					record.stable_id, record.world_bounds, record.parent_id, record.layer_type,
@@ -364,15 +385,17 @@ func _generate_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var cleared_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var cleared_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var cleared_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
 	var result := FoundationParcelSubdivider.generate(world_node.world_data)
-	_status.text = "Parcel generation %s: %d generated, %d preserved; %d downstream buildings and %d facades cleared." % [
+	_status.text = "Parcel generation %s: %d generated, %d preserved; %d buildings, %d facades, and %d districts cleared." % [
 		"completed" if result.success else "failed",
 		result.generated_parcel_count,
 		result.preserved_parcel_count,
 		cleared_buildings,
 		cleared_facades,
+		cleared_districts,
 	]
 	_populate_selection_options()
 
@@ -382,10 +405,11 @@ func _clear_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var removed_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var removed_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var removed_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
 	var removed := FoundationParcelSubdivider.clear_generated(world_node.world_data)
-	_status.text = "Cleared %d generated parcel, %d building, and %d facade record(s); authored records were preserved." % [removed, removed_buildings, removed_facades]
+	_status.text = "Cleared %d generated parcel, %d building, %d facade, and %d district record(s); authored records were preserved." % [removed, removed_buildings, removed_facades, removed_districts]
 	_populate_selection_options()
 
 
@@ -394,14 +418,16 @@ func _generate_buildings_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var cleared_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var cleared_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var result := FoundationBuildingGenerator.generate(world_node.world_data)
-	_status.text = "Building generation %s: %d generated, %d preserved, %d parcels skipped; %d downstream facades cleared." % [
+	_status.text = "Building generation %s: %d generated, %d preserved, %d parcels skipped; %d facades and %d districts cleared." % [
 		"completed" if result.success else "failed",
 		result.generated_building_count,
 		result.preserved_building_count,
 		result.skipped_parcel_count,
 		cleared_facades,
+		cleared_districts,
 	]
 	_populate_selection_options()
 
@@ -411,9 +437,10 @@ func _clear_buildings_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var removed_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var removed_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var removed := FoundationBuildingGenerator.clear_generated(world_node.world_data)
-	_status.text = "Cleared %d generated building and %d downstream facade record(s); authored records were preserved." % [removed, removed_facades]
+	_status.text = "Cleared %d generated building, %d facade, and %d district record(s); authored records were preserved." % [removed, removed_facades, removed_districts]
 	_populate_selection_options()
 
 
@@ -422,13 +449,15 @@ func _generate_facades_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var cleared_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var result := FoundationFacadeGenerator.generate(world_node.world_data)
-	_status.text = "Facade generation %s: %d generated, %d preserved, %d buildings skipped, %d modules." % [
+	_status.text = "Facade generation %s: %d generated, %d preserved, %d buildings skipped, %d modules; %d districts cleared." % [
 		"completed" if result.success else "failed",
 		result.generated_facade_count,
 		result.preserved_facade_count,
 		result.skipped_building_count,
 		result.generated_module_count,
+		cleared_districts,
 	]
 	_populate_selection_options()
 
@@ -438,8 +467,32 @@ func _clear_facades_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	var removed_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var removed := FoundationFacadeGenerator.clear_generated(world_node.world_data)
-	_status.text = "Cleared %d generated facade record(s); authored facades were preserved." % removed
+	_status.text = "Cleared %d generated facade and %d district record(s); authored records were preserved." % [removed, removed_districts]
+	_populate_selection_options()
+
+
+func _generate_districts_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var result := FoundationDistrictGenerator.generate(world_node.world_data)
+	_status.text = "District generation %s: %d generated, %d preserved, %d blocks assigned, %d adjacency edges." % [
+		"completed" if result.success else "failed", result.generated_district_count,
+		result.preserved_district_count, result.assigned_block_count, result.adjacency_edge_count,
+	]
+	_populate_selection_options()
+
+
+func _clear_districts_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var removed := FoundationDistrictGenerator.clear_generated(world_node.world_data)
+	_status.text = "Cleared %d generated district record(s); authored districts were preserved." % removed
 	_populate_selection_options()
 
 

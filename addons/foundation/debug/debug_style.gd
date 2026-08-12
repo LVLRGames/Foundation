@@ -91,6 +91,19 @@ extends Resource
 @export var facade_overridden := Color("f48fb1")
 @export var facade_invalid := Color("ef5350")
 @export var facade_skipped := Color("ffb74d")
+@export var district_downtown := Color("ef5350")
+@export var district_mixed_use := Color("ffb74d")
+@export var district_residential := Color("66bb6a")
+@export var district_industrial := Color("78909c")
+@export var district_civic := Color("ab47bc")
+@export var district_suburban := Color("26a69a")
+@export var district_rural := Color("8bc34a")
+@export var district_locked := Color("ffee58")
+@export var district_overridden := Color("f48fb1")
+@export var district_invalid := Color("f44336")
+@export var district_warning := Color("ffca28")
+@export var district_boundary := Color(1.0, 1.0, 1.0, 0.34)
+@export var district_seed_link := Color("80deea")
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -275,6 +288,34 @@ func color_for(purpose: StringName) -> Color:
 			return facade_invalid
 		&"facade_skipped":
 			return facade_skipped
+		&"district_downtown_core", &"district_fill_downtown_core":
+			return district_downtown
+		&"district_mixed_use_center", &"district_fill_mixed_use_center":
+			return district_mixed_use
+		&"district_residential_neighborhood", &"district_fill_residential_neighborhood":
+			return district_residential
+		&"district_industrial_employment", &"district_fill_industrial_employment":
+			return district_industrial
+		&"district_civic_institutional", &"district_fill_civic_institutional":
+			return district_civic
+		&"district_suburban_neighborhood", &"district_fill_suburban_neighborhood":
+			return district_suburban
+		&"district_rural_edge", &"district_fill_rural_edge":
+			return district_rural
+		&"district_locked", &"district_fill_locked":
+			return district_locked
+		&"district_overridden", &"district_fill_overridden":
+			return district_overridden
+		&"district_invalid", &"district_fill_invalid":
+			return district_invalid
+		&"district_warning":
+			return district_warning
+		&"district_boundary":
+			return district_boundary
+		&"district_seed_link":
+			return district_seed_link
+		&"district_fill_selected":
+			return selected
 		&"selected":
 			return selected
 		&"relationship":
