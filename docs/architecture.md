@@ -12,6 +12,8 @@ Phase 5 building generation consumes buildable parcels and their frontage proven
 
 Phase 6 plans bounded chunk lifecycle and terrain visual LOD transitions without mutating spatial records or terrain arrays; see [chunk_streaming.md](chunk_streaming.md).
 
+Phase 8 groups canonical blocks into Node-free district and land-use policy while leaving terrain and upstream city records unchanged; see [district_generation.md](district_generation.md).
+
 Phase 7 projects deterministic modular facade grammar onto Phase 5 massing without creating production building meshes or mutating upstream records; see [facade_grammar.md](facade_grammar.md).
 
 ## Data first, rendering second

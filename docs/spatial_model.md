@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, and Phase 7 `facades`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, and Phase 8 `districts`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Overrides remain separate from raw generator layers; the complete authored override editor is a later phase.
 
 ## Coordinate conventions
 
