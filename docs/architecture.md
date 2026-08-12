@@ -12,6 +12,8 @@ Phase 5 building generation consumes buildable parcels and their frontage proven
 
 Phase 6 plans bounded chunk lifecycle and terrain visual LOD transitions without mutating spatial records or terrain arrays; see [chunk_streaming.md](chunk_streaming.md).
 
+Phase 7 projects deterministic modular facade grammar onto Phase 5 massing without creating production building meshes or mutating upstream records; see [facade_grammar.md](facade_grammar.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.

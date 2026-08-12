@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 6 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, deterministic city-block extraction, frontage-aware parcel subdivision, parcel-aware primitive building massing, and deterministic chunk streaming with terrain visual LOD. Node-free interest planning preserves stable records and authorship, applies hysteresis and bounded one-step transitions, and keeps scene presentation disposable.
+The current Phase 7 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, deterministic city-block extraction, frontage-aware parcel subdivision, parcel-aware primitive building massing, deterministic modular facade grammar, and deterministic chunk streaming with terrain visual LOD. Facade data remains Node-free and records stable building lineage, edge roles, floor/bay grids, windows, and semantic entrances while keeping scene presentation disposable.
 
-District/use assignment, addresses, facades, interiors, prefabs, production building meshes/collision, physical road geometry/intersections, traffic/navigation, terrain grading or pads, parking, and vegetation are intentionally not implemented.
+District/use assignment, addresses, interiors, prefabs, production building meshes/materials/collision, physical road geometry/intersections, traffic/navigation, terrain grading or pads, parking, and vegetation are intentionally not implemented.
+
+## Run the Phase 7 facade grammar demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Facade bays, windows, and entrances** and optionally hide the earlier data layers.
+3. Inspect primary, side, and rear edge roles plus deterministic floor/bay grids and the single semantic primary entrance.
+4. Select **Modular facade grammar** in the stage control and regenerate to confirm same-seed stability.
+
+Facade openings are renderer-independent grammar records. They are not final wall/window/door meshes, materials, collision, navigation portals, or interiors.
 
 ## Run the Phase 6 streaming demo
 
@@ -101,9 +110,14 @@ building_profile.rear_setback = 4.0
 var building_result := FoundationBuildingGenerator.generate(world_data, building_profile)
 assert(building_result.success)
 
+var facade_profile := FoundationFacadeGenerationProfile.new()
+var facade_result := FoundationFacadeGenerator.generate(world_data, facade_profile)
+assert(facade_result.success)
+
 var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
 var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
+var facades: Array[FoundationFacadeRecord] = world_data.get_facades()
 var signed_chunk_blocks := world_data.get_records_in_chunk(Vector2i(-1, 0), &"blocks")
 
 var streaming_profile := FoundationChunkStreamingProfile.new()
@@ -132,9 +146,10 @@ var intersections := world_data.get_road_intersections()
 var blocks := world_data.get_blocks()
 var parcels := world_data.get_parcels()
 var buildings := world_data.get_buildings()
+var facades := world_data.get_facades()
 ```
 
-Terrain, anchors, roads, logical roads, blocks, and parcels remain authoritative inputs and are not mutated. Phase 5 building records are abstract footprints and flat-roof extrusion envelopes only; terrain pads/elevation sampling, uses, architecture, production meshes, entrances, parking, and physical access geometry remain later contracts.
+Terrain, anchors, roads, logical roads, blocks, parcels, and Phase 5 buildings remain authoritative inputs and are not mutated. Phase 7 facade records are abstract edge roles and modular opening layouts only; terrain pads/elevation sampling, uses, production architecture meshes/materials, navigable entrances, parking, and physical access geometry remain later contracts.
 
 ## Validation
 
@@ -146,8 +161,9 @@ Terrain, anchors, roads, logical roads, blocks, and parcels remain authoritative
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_4_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_5_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_6_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_7_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/chunk_streaming.md](docs/chunk_streaming.md) for the Phase 6 planner, lifecycle, LOD, terrain-presentation, and debug contracts. Building massing remains documented in [docs/building_massing.md](docs/building_massing.md); earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/facade_grammar.md](docs/facade_grammar.md) for the Phase 7 facade records, grammar, regeneration, validation, and exclusions. Chunk streaming remains documented in [docs/chunk_streaming.md](docs/chunk_streaming.md); building massing remains in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
