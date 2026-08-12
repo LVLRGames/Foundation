@@ -67,4 +67,5 @@ func register_phase_1_defaults() -> void:
 	register_provider(FoundationBlockDebugProvider.new())
 	register_provider(FoundationParcelDebugProvider.new())
 	register_provider(FoundationBuildingDebugProvider.new())
+	register_provider(FoundationFacadeDebugProvider.new())
 	register_provider(STREAMING_DEBUG_PROVIDER.new(), false)

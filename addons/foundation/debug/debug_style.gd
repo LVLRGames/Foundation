@@ -81,6 +81,16 @@ extends Resource
 @export var building_roof_overridden := Color(0.96, 0.56, 0.69, 0.38)
 @export var building_roof_invalid := Color(0.94, 0.33, 0.31, 0.40)
 @export var building_roof_selected := Color(1.0, 1.0, 1.0, 0.48)
+@export var facade_primary := Color("80deea")
+@export var facade_side := Color("90caf9")
+@export var facade_rear := Color("b0bec5")
+@export var facade_grid := Color(0.72, 0.78, 0.82, 0.44)
+@export var facade_window := Color("42a5f5")
+@export var facade_entrance := Color("ffca28")
+@export var facade_locked := Color("ffee58")
+@export var facade_overridden := Color("f48fb1")
+@export var facade_invalid := Color("ef5350")
+@export var facade_skipped := Color("ffb74d")
 @export var selected := Color("ffffff")
 @export var relationship := Color("4dd0e1")
 @export var label := Color("f5f5f5")
@@ -245,6 +255,26 @@ func color_for(purpose: StringName) -> Color:
 			return building_roof_invalid
 		&"building_roof_selected":
 			return building_roof_selected
+		&"facade_primary":
+			return facade_primary
+		&"facade_side":
+			return facade_side
+		&"facade_rear":
+			return facade_rear
+		&"facade_grid":
+			return facade_grid
+		&"facade_window":
+			return facade_window
+		&"facade_entrance":
+			return facade_entrance
+		&"facade_locked":
+			return facade_locked
+		&"facade_overridden":
+			return facade_overridden
+		&"facade_invalid":
+			return facade_invalid
+		&"facade_skipped":
+			return facade_skipped
 		&"selected":
 			return selected
 		&"relationship":
