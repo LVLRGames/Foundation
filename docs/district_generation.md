@@ -50,7 +50,7 @@ The editor dock and `demo/spatial_model_demo.tscn` expose district visibility, s
 
 Phase 8 does not implement:
 
-- terrain grading, road cuts/fills, pads, bridge approaches, or retaining structures (Phase 9);
+- terrain grading, road cuts/fills, pads, and bridge approaches (implemented in Phase 9; see [terrain_grading.md](terrain_grading.md)); retaining structures remain excluded;
 - parking or public-feature placement (Phase 10);
 - full override-authoring tools (Phase 11);
 - interiors, rooms, portals, or vertical circulation (Phase 12);

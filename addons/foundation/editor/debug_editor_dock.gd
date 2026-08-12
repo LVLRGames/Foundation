@@ -74,6 +74,7 @@ func _build_interface() -> void:
 		[&"buildings", "Building footprints, primitive massing, and validation"],
 		[&"facades", "Modular facade grids, windows, entrances, and validation"],
 		[&"districts", "District coverage, character, use policy, and validation"],
+		[&"terrain_grading", "Terrain grading roads, pads, bridges, cut/fill, and validation"],
 		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
 	]:
@@ -136,6 +137,14 @@ func _build_interface() -> void:
 	clear_districts.text = "Clear Generated Districts"
 	clear_districts.pressed.connect(_clear_districts_pressed)
 	_content.add_child(clear_districts)
+	var apply_grading := Button.new()
+	apply_grading.text = "Plan / Apply Terrain Grading"
+	apply_grading.pressed.connect(_apply_terrain_grading_pressed)
+	_content.add_child(apply_grading)
+	var revert_grading := Button.new()
+	revert_grading.text = "Revert Terrain Grading"
+	revert_grading.pressed.connect(_revert_terrain_grading_pressed)
+	_content.add_child(revert_grading)
 
 
 func _connect_selection() -> void:
@@ -183,6 +192,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"buildings"].button_pressed = _view.show_buildings
 	_layer_toggles[&"facades"].button_pressed = _view.show_facades
 	_layer_toggles[&"districts"].button_pressed = _view.show_districts
+	_layer_toggles[&"terrain_grading"].button_pressed = _view.show_terrain_grading
 	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
 	_status.text = "Editing %s. Visibility changes never regenerate world data." % _view.name
@@ -237,6 +247,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"buildings": _view.show_buildings = value
 		&"facades": _view.show_facades = value
 		&"districts": _view.show_districts = value
+		&"terrain_grading": _view.show_terrain_grading = value
 		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
 	_status.text = "Visibility updated. Use Rebuild Debug Display to apply it."
@@ -385,6 +396,8 @@ func _generate_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	if not _revert_grading_before_upstream_change(world_node):
+		return
 	var cleared_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var cleared_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var cleared_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
@@ -405,6 +418,8 @@ func _clear_parcels_pressed() -> void:
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
 		return
+	if not _revert_grading_before_upstream_change(world_node):
+		return
 	var removed_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var removed_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
 	var removed_buildings := FoundationBuildingGenerator.clear_generated(world_node.world_data)
@@ -417,6 +432,8 @@ func _generate_buildings_pressed() -> void:
 	var world_node := _selected_world()
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	if not _revert_grading_before_upstream_change(world_node):
 		return
 	var cleared_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var cleared_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
@@ -436,6 +453,8 @@ func _clear_buildings_pressed() -> void:
 	var world_node := _selected_world()
 	if world_node == null:
 		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	if not _revert_grading_before_upstream_change(world_node):
 		return
 	var removed_districts := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	var removed_facades := FoundationFacadeGenerator.clear_generated(world_node.world_data)
@@ -494,6 +513,59 @@ func _clear_districts_pressed() -> void:
 	var removed := FoundationDistrictGenerator.clear_generated(world_node.world_data)
 	_status.text = "Cleared %d generated district record(s); authored districts were preserved." % removed
 	_populate_selection_options()
+
+
+func _apply_terrain_grading_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	if world_node.terrain_data == null:
+		_status.text = "Register authoritative terrain data with FoundationWorld before grading."
+		return
+	if world_node.world_data.terrain_grading_plan != null and world_node.world_data.terrain_grading_plan.state == FoundationTerrainGradingPlan.STATE_APPLIED:
+		var revert := FoundationTerrainGrader.revert_plan(world_node.world_data, world_node.terrain_data, world_node.world_data.terrain_grading_plan)
+		if not revert.success:
+			_status.text = "Terrain grading could not replace the existing applied plan safely."
+			return
+	var planned := FoundationTerrainGrader.create_plan(world_node.world_data, world_node.terrain_data, world_node.terrain_origin_cell)
+	if not planned.success:
+		world_node.world_data.terrain_grading_plan = planned.plan
+		_view.rebuild()
+		_status.text = "Terrain grading plan failed validation with %d issue(s)." % planned.validation_issues.size()
+		return
+	var applied := FoundationTerrainGrader.apply_plan(world_node.world_data, world_node.terrain_data, planned.plan)
+	_view.rebuild()
+	_status.text = "Terrain grading %s: %d operation(s), %d changed vertices, %d dirty chunks." % [
+		"applied" if applied.success else "failed", planned.plan.operations.size(),
+		applied.changed_vertex_count, applied.dirty_chunk_count,
+	]
+
+
+func _revert_terrain_grading_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null or world_node.terrain_data == null or world_node.world_data.terrain_grading_plan == null:
+		_status.text = "No registered terrain grading plan is available to revert."
+		return
+	var result := FoundationTerrainGrader.revert_plan(world_node.world_data, world_node.terrain_data, world_node.world_data.terrain_grading_plan)
+	_view.rebuild()
+	_status.text = "Terrain grading %s: %d restored vertices, %d dirty chunks." % [
+		"reverted" if result.success else "revert refused", result.changed_vertex_count, result.dirty_chunk_count,
+	]
+
+
+func _revert_grading_before_upstream_change(world_node: FoundationWorld) -> bool:
+	if world_node.terrain_data == null or world_node.world_data.terrain_grading_plan == null:
+		return true
+	if world_node.world_data.terrain_grading_plan.state != FoundationTerrainGradingPlan.STATE_APPLIED:
+		return true
+	var result := FoundationTerrainGrader.revert_plan(
+		world_node.world_data, world_node.terrain_data, world_node.world_data.terrain_grading_plan
+	)
+	if result.success:
+		return true
+	_status.text = "Upstream regeneration was refused because applied terrain grading could not be safely reverted."
+	return false
 
 
 func _selected_world() -> FoundationWorld:

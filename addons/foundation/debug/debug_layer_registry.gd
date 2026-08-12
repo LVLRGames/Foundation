@@ -5,6 +5,7 @@ extends RefCounted
 
 const STREAMING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/streaming_debug_provider.gd")
 const DISTRICT_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/district_debug_provider.gd")
+const TERRAIN_GRADING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/terrain_grading_debug_provider.gd")
 
 var enabled := true
 var last_provider_invocations := 0
@@ -70,4 +71,5 @@ func register_phase_1_defaults() -> void:
 	register_provider(FoundationBuildingDebugProvider.new())
 	register_provider(FoundationFacadeDebugProvider.new())
 	register_provider(DISTRICT_DEBUG_PROVIDER.new())
+	register_provider(TERRAIN_GRADING_DEBUG_PROVIDER.new())
 	register_provider(STREAMING_DEBUG_PROVIDER.new(), false)

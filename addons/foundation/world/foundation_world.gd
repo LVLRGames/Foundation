@@ -15,6 +15,8 @@ signal world_initialized(data: FoundationWorldData)
 @export var initialize_on_ready := true
 
 var world_data: FoundationWorldData
+var terrain_data: FoundationTerrainData
+var terrain_origin_cell := Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -35,6 +37,8 @@ func initialize_world() -> FoundationWorldData:
 		region_chunks
 	)
 	world_data = FoundationWorldData.new(metadata, coordinates)
+	terrain_data = null
+	terrain_origin_cell = Vector2i.ZERO
 	world_data.initialize_default_layers()
 	world_data.initialize_partitions()
 	world_initialized.emit(world_data)
@@ -47,6 +51,8 @@ func register_terrain_extent(
 ) -> FoundationSpatialRecord:
 	if world_data == null:
 		initialize_world()
+	self.terrain_data = terrain_data
+	terrain_origin_cell = origin_cell
 	var extent_id := FoundationSpatialId.make(
 		world_data.metadata.seed,
 		world_data.metadata.generator_version,
@@ -78,6 +84,8 @@ func to_manifest() -> Dictionary:
 
 func load_manifest(manifest: Dictionary) -> void:
 	world_data = FoundationWorldData.from_dict(manifest)
+	terrain_data = null
+	terrain_origin_cell = Vector2i.ZERO
 	seed = world_data.metadata.seed
 	world_bounds = world_data.metadata.world_bounds
 	cell_size = world_data.coordinate_system.cell_size

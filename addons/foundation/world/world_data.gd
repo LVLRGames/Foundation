@@ -24,6 +24,7 @@ var spatial_index: FoundationSpatialIndex
 var layer_registry := FoundationLayerRegistry.new()
 var regions: Dictionary = {}
 var chunks: Dictionary = {}
+var terrain_grading_plan: FoundationTerrainGradingPlan
 
 
 func _init(
@@ -358,6 +359,7 @@ func to_dict() -> Dictionary:
 		"layers": serialized_layers,
 		"regions": serialized_regions,
 		"chunks": serialized_chunks,
+		"terrain_grading_plan": terrain_grading_plan.to_dict() if terrain_grading_plan != null else {},
 	}
 
 
@@ -375,4 +377,7 @@ static func from_dict(data: Dictionary) -> FoundationWorldData:
 	for layer_data: Dictionary in data.get("layers", []):
 		var layer := FoundationSpatialLayer.from_dict(layer_data, world.coordinate_system, world.spatial_index)
 		world.layer_registry.register_layer(layer)
+	var grading_data: Dictionary = data.get("terrain_grading_plan", {})
+	if not grading_data.is_empty():
+		world.terrain_grading_plan = FoundationTerrainGradingPlan.from_dict(grading_data)
 	return world
