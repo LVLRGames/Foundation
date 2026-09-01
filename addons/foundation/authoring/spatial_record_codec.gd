@@ -33,6 +33,8 @@ static func record_from_dict(data: Dictionary) -> FoundationSpatialRecord:
 			return FoundationParkingFacilityRecord.from_dict(data)
 		FoundationPublicFeatureRecord.RECORD_KIND:
 			return FoundationPublicFeatureRecord.from_dict(data)
+		FoundationInteriorRecord.RECORD_KIND:
+			return FoundationInteriorRecord.from_dict(data)
 		FoundationOverrideRecord.RECORD_KIND:
 			return FoundationOverrideRecord.from_dict(data)
 		_:
@@ -117,6 +119,20 @@ static func translate_record_data(data: Dictionary, delta: Vector2) -> Dictionar
 		FoundationPublicFeatureRecord.RECORD_KIND:
 			_shift_point2_array(result, "footprint", delta)
 			_shift_point2(result, "position", delta)
+		FoundationInteriorRecord.RECORD_KIND:
+			_shift_point2_array(result, "source_footprint", delta)
+			for floor: Dictionary in result.get("floors", []):
+				_shift_nested_point2_arrays(floor, "usable_components", delta)
+				for room: Dictionary in floor.get("rooms", []):
+					_shift_point2_array(room, "boundary", delta)
+					_shift_point2(room, "centroid", delta)
+					_shift_point2(room, "label_point", delta)
+				for portal: Dictionary in floor.get("portals", []):
+					_shift_point2(portal, "start", delta)
+					_shift_point2(portal, "end", delta)
+			for connector: Dictionary in result.get("vertical_connectors", []):
+				_shift_point2(connector, "center", delta)
+				_shift_point2_array(connector, "footprint", delta)
 	return result
 
 

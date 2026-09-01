@@ -109,12 +109,12 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=328452493]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Phase 11 — Deterministic Authoring and Overrides"
+text = "Phase 12 — Selective Interiors"
 autowrap_mode = 2
 
 [node name="Scope" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=1333384478]
 layout_mode = 2
-text = "Phase 11 adds durable authoring across Phase 1–10 spatial records, including Phase 9 grading inputs and Phase 10 site records; no interiors, traffic, or production content."
+text = "Phase 12 adds bounded selective interiors over the existing Phase 9 grading and Phase 10 parking/public-site pipeline. It generates room, portal, entrance-lineage, and vertical-connector data only for explicitly selected buildings and floors; no city-wide interiors, navigation, furniture, or production architecture."
 autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="UI/Margin/Panel/Scroll/Content" unique_id=913024322]
@@ -295,6 +295,12 @@ unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Phase 11 overrides, tombstones, and conflicts"
+
+[node name="InteriorToggle" type="CheckBox" parent="UI/Margin/Panel/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Phase 12 selective rooms, portals, and connectors"
 
 [node name="StageControls" type="VBoxContainer" parent="UI/Margin/Panel/Scroll/Content" unique_id=187767941]
 layout_mode = 2

@@ -77,6 +77,7 @@ func _build_interface() -> void:
 		[&"terrain_grading", "Terrain grading roads, pads, bridges, cut/fill, and validation"],
 		[&"parking_facilities", "Parking demand, footprints, stalls, access, and validation"],
 		[&"public_features", "Public sites, service radii, anchor lineage, and validation"],
+		[&"interiors", "Selective rooms, portals, entrances, connectors, and validation"],
 		[&"overrides", "Authored modifications, creations, tombstones, and conflicts"],
 		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
@@ -148,6 +149,14 @@ func _build_interface() -> void:
 	clear_site_features.text = "Clear Generated Parking + Public Features"
 	clear_site_features.pressed.connect(_clear_site_features_pressed)
 	_content.add_child(clear_site_features)
+	var generate_interiors := Button.new()
+	generate_interiors.text = "Generate Interior for Selected Building"
+	generate_interiors.pressed.connect(_generate_selected_interior_pressed)
+	_content.add_child(generate_interiors)
+	var clear_interiors := Button.new()
+	clear_interiors.text = "Clear Generated Interiors"
+	clear_interiors.pressed.connect(_clear_interiors_pressed)
+	_content.add_child(clear_interiors)
 	var apply_grading := Button.new()
 	apply_grading.text = "Plan / Apply Terrain Grading"
 	apply_grading.pressed.connect(_apply_terrain_grading_pressed)
@@ -206,6 +215,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"terrain_grading"].button_pressed = _view.show_terrain_grading
 	_layer_toggles[&"parking_facilities"].button_pressed = _view.show_parking_facilities
 	_layer_toggles[&"public_features"].button_pressed = _view.show_public_features
+	_layer_toggles[&"interiors"].button_pressed = _view.show_interiors
 	_layer_toggles[&"overrides"].button_pressed = _view.show_overrides
 	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
@@ -264,6 +274,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"terrain_grading": _view.show_terrain_grading = value
 		&"parking_facilities": _view.show_parking_facilities = value
 		&"public_features": _view.show_public_features = value
+		&"interiors": _view.show_interiors = value
 		&"overrides": _view.show_overrides = value
 		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
@@ -567,6 +578,40 @@ func _clear_site_features_pressed() -> void:
 	_status.text = "Cleared %d parking and %d public-feature record(s); authored records were preserved." % [
 		removed["parking"], removed["public_features"],
 	]
+	_populate_selection_options()
+
+
+func _generate_selected_interior_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var selected := world_node.world_data.get_record(_view.selected_record_id)
+	var building_id: StringName = &""
+	if selected is FoundationInteriorRecord:
+		building_id = selected.parent_id
+	elif selected is FoundationBuildingRecord:
+		building_id = selected.stable_id
+	if String(building_id).is_empty():
+		_status.text = "Select a building or interior record first; Phase 12 never generates city-wide interiors by default."
+		return
+	var request := FoundationInteriorGenerationRequest.new()
+	request.building_ids.append(building_id)
+	request.floor_indices_by_building[String(building_id)] = [0]
+	var result := FoundationInteriorGenerator.generate(world_node.world_data, request)
+	_view.rebuild()
+	_status.text = "Phase 12 generation %s: %d interior, %d floor(s), %d room(s), %d portal(s)." % ["completed" if result.success else "failed", result.generated_interior_count, result.generated_floor_count, result.generated_room_count, result.generated_portal_count]
+	_populate_selection_options()
+
+
+func _clear_interiors_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var removed := FoundationInteriorGenerator.clear_generated(world_node.world_data)
+	_view.rebuild()
+	_status.text = "Cleared %d generated interior record(s); authored interiors were preserved." % removed
 	_populate_selection_options()
 
 

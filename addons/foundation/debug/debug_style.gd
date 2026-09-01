@@ -128,6 +128,13 @@ extends Resource
 @export var public_feature_overridden := Color("f48fb1")
 @export var public_feature_invalid := Color("f44336")
 @export var public_feature_warning := Color("ffb74d")
+@export var interior_room := Color("80cbc4")
+@export var interior_room_circulation := Color("ffee58")
+@export var interior_room_service := Color("b0bec5")
+@export var interior_portal := Color("ffffff")
+@export var interior_entrance := Color("ffca28")
+@export var interior_connector := Color("ab47bc")
+@export var interior_invalid := Color("f44336")
 @export var public_feature_fill := Color(0.40, 0.73, 0.42, 0.26)
 @export var public_feature_service := Color(0.40, 0.73, 0.42, 0.22)
 @export var override_modify := Color("ffca28")
@@ -405,6 +412,20 @@ func color_for(purpose: StringName) -> Color:
 			return selected
 		&"public_feature_service":
 			return public_feature_service
+		&"interior_room":
+			return interior_room
+		&"interior_room_circulation":
+			return interior_room_circulation
+		&"interior_room_service":
+			return interior_room_service
+		&"interior_portal":
+			return interior_portal
+		&"interior_entrance":
+			return interior_entrance
+		&"interior_connector":
+			return interior_connector
+		&"interior_invalid":
+			return interior_invalid
 		&"public_feature_anchor_link":
 			return relationship
 		&"override_modify":

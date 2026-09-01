@@ -29,6 +29,7 @@ func supported_layers() -> Array[StringName]:
 		FoundationWorldData.DISTRICT_LAYER,
 		FoundationWorldData.PARKING_FACILITY_LAYER,
 		FoundationWorldData.PUBLIC_FEATURE_LAYER,
+		FoundationWorldData.INTERIOR_LAYER,
 	]
 
 
@@ -47,6 +48,7 @@ func supported_record_kinds() -> Array[StringName]:
 		FoundationDistrictRecord.RECORD_KIND,
 		FoundationParkingFacilityRecord.RECORD_KIND,
 		FoundationPublicFeatureRecord.RECORD_KIND,
+		FoundationInteriorRecord.RECORD_KIND,
 	]
 
 
