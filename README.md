@@ -2,9 +2,18 @@
 
 Foundation is LVLR Studios' deterministic, data-first world and city generation addon for Godot 4.7.
 
-The current Phase 12 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, frontage-led parcel subdivision with at most four opposing street-facing rows per block, compact primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, deterministic typed authoring overrides, and opt-in room/portal topology for explicitly selected buildings and floors.
+The current Phase 13 baseline combines chunked terrain, the renderer-independent spatial model and city anchors, deterministic terrain-aware road planning, frontage-led parcel subdivision with at most four opposing street-facing rows per block, compact primitive building massing, modular facade grammar, deterministic district/land-use policy, reversible terrain grading, parking demand/layouts, public-feature placement, chunk streaming with terrain visual LOD, deterministic typed authoring overrides, opt-in room/portal topology, and derived lane cross-sections plus intersection movement/control metadata.
 
-Addresses, prefabs, production interior/building/road/bridge/parking/public-space meshes, furniture, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic/navigation, utilities, and vegetation are intentionally not implemented.
+Addresses, prefabs, production interior/building/road/bridge/parking/public-space meshes, furniture, materials and collision, retaining-wall/foundation geometry, structural bridge supports, traffic navigation/simulation, runtime vehicles, utilities, and vegetation are intentionally not implemented.
+
+## Run the Phase 13 advanced-road metadata demo
+
+1. Open `demo/spatial_model_demo.tscn` in Godot 4.7 and run the scene.
+2. Enable **Phase 13 lanes, movements, and control policy**, hiding earlier overlays when desired.
+3. Select a cross-section or intersection-traffic record to inspect stable lane IDs, directionality, turn permissions, approach lineage, control type, and signal phase groups.
+4. Select **Advanced roads + traffic metadata** and regenerate to confirm same-input stability. Hold RMB and use WASD plus Q/E to inspect with the fly camera; press H to hide the compact panel.
+
+Phase 13 is metadata only. Lane polylines and movement hints are disposable debug presentation, not driveable paths or production road geometry.
 
 ## Run the Phase 12 selective-interior demo
 
@@ -195,6 +204,13 @@ var interior_result := FoundationInteriorGenerator.generate(
 )
 assert(interior_result.success)
 
+var traffic_profile := FoundationTrafficMetadataProfile.new()
+var traffic_result := FoundationTrafficMetadataGenerator.generate(
+    world_data,
+    traffic_profile
+)
+assert(traffic_result.success)
+
 var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
 var facades: Array[FoundationFacadeRecord] = world_data.get_facades()
@@ -202,6 +218,8 @@ var districts: Array[FoundationDistrictRecord] = world_data.get_districts()
 var parking: Array[FoundationParkingFacilityRecord] = world_data.get_parking_facilities()
 var public_features: Array[FoundationPublicFeatureRecord] = world_data.get_public_features()
 var interiors: Array[FoundationInteriorRecord] = world_data.get_interiors()
+var road_cross_sections: Array[FoundationRoadCrossSectionRecord] = world_data.get_road_cross_sections()
+var intersection_traffic: Array[FoundationIntersectionTrafficRecord] = world_data.get_intersection_traffic()
 var authoring := FoundationAuthoringSession.new()
 var moved := authoring.translate_record(world_data, buildings[0].stable_id, Vector2(4.0, 0.0))
 assert(moved.success)
@@ -239,12 +257,14 @@ var districts := world_data.get_districts()
 var parking := world_data.get_parking_facilities()
 var public_features := world_data.get_public_features()
 var interiors := world_data.get_interiors()
+var road_cross_sections := world_data.get_road_cross_sections()
+var intersection_traffic := world_data.get_intersection_traffic()
 var overrides := world_data.get_overrides()
 var parcel_district := world_data.get_district_for_parcel(parcels[0].stable_id)
 var parcel_parking := world_data.get_parking_for_parcel(parcels[0].stable_id)
 ```
 
-The Phase 11 authoring workflow can author supported spatial records through Phase 12 while preserving generator-owned base snapshots and explicit conflict state. Terrain arrays and grading plans remain outside the override policy. Addresses, production architecture/roads/bridges/parking/public spaces, furniture, driveable connections, navigation, traffic, utilities, and vegetation remain later contracts.
+The Phase 11 authoring workflow can author supported spatial records through Phase 13 while preserving generator-owned base snapshots and explicit conflict state. Terrain arrays and grading plans remain outside the override policy. Addresses, production architecture/roads/bridges/parking/public spaces, furniture, driveable navigation, runtime traffic simulation, utilities, and vegetation remain outside the current contract.
 
 ## Validation
 
@@ -262,8 +282,9 @@ The Phase 11 authoring workflow can author supported spatial records through Pha
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_10_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_11_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_12_tests.gd
+& 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --script res://tests/run_phase_13_tests.gd
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --path . --quit-after 5 --verbose
 & 'D:\Program Files\Godot\v4.7\Godot_v4.7-stable_win64.exe' --headless --editor --path . --quit-after 5 --verbose
 ```
 
-See [docs/selective_interiors.md](docs/selective_interiors.md) for the Phase 12 selection, geometry, topology, validation, and exclusion contract. Phase 11 authoring remains documented in [docs/authoring_overrides.md](docs/authoring_overrides.md), Phase 10 in [docs/parking_public_features.md](docs/parking_public_features.md), terrain grading in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.
+See [docs/advanced_roads_traffic.md](docs/advanced_roads_traffic.md) for the Phase 13 lane, approach, movement, control, validation, and exclusion contract. Phase 12 remains documented in [docs/selective_interiors.md](docs/selective_interiors.md), Phase 11 in [docs/authoring_overrides.md](docs/authoring_overrides.md), Phase 10 in [docs/parking_public_features.md](docs/parking_public_features.md), terrain grading in [docs/terrain_grading.md](docs/terrain_grading.md), districts in [docs/district_generation.md](docs/district_generation.md), facades in [docs/facade_grammar.md](docs/facade_grammar.md), streaming in [docs/chunk_streaming.md](docs/chunk_streaming.md), and massing in [docs/building_massing.md](docs/building_massing.md). Earlier contracts remain in [docs/parcel_subdivision.md](docs/parcel_subdivision.md), [docs/block_extraction.md](docs/block_extraction.md), [docs/road_topology.md](docs/road_topology.md), [docs/spatial_model.md](docs/spatial_model.md), and [docs/architecture.md](docs/architecture.md). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for visual-reference attribution.

@@ -35,6 +35,10 @@ static func record_from_dict(data: Dictionary) -> FoundationSpatialRecord:
 			return FoundationPublicFeatureRecord.from_dict(data)
 		FoundationInteriorRecord.RECORD_KIND:
 			return FoundationInteriorRecord.from_dict(data)
+		FoundationRoadCrossSectionRecord.RECORD_KIND:
+			return FoundationRoadCrossSectionRecord.from_dict(data)
+		FoundationIntersectionTrafficRecord.RECORD_KIND:
+			return FoundationIntersectionTrafficRecord.from_dict(data)
 		FoundationOverrideRecord.RECORD_KIND:
 			return FoundationOverrideRecord.from_dict(data)
 		_:
@@ -133,6 +137,12 @@ static func translate_record_data(data: Dictionary, delta: Vector2) -> Dictionar
 			for connector: Dictionary in result.get("vertical_connectors", []):
 				_shift_point2(connector, "center", delta)
 				_shift_point2_array(connector, "footprint", delta)
+		FoundationRoadCrossSectionRecord.RECORD_KIND:
+			for lane: Dictionary in result.get("lanes", []):
+				_shift_point3_array(lane, "centerline", delta)
+		FoundationIntersectionTrafficRecord.RECORD_KIND:
+			for movement: Dictionary in result.get("movements", []):
+				_shift_point3_array(movement, "path_hint", delta)
 	return result
 
 

@@ -54,7 +54,7 @@ Phase 8 does not implement:
 - parking and public-feature placement (implemented in Phase 10; see [parking_public_features.md](parking_public_features.md));
 - full override-authoring tools (implemented in Phase 11; see [authoring_overrides.md](authoring_overrides.md));
 - interiors, rooms, portals, or vertical circulation (Phase 12);
-- advanced lanes, traffic control, or traffic simulation (Phase 13);
+- Phase 13 advanced lanes and traffic-control metadata, or any traffic simulation;
 - addresses or final names;
 - production meshes, materials, collision, prefabs, or architectural content packs;
 - gameplay navigation, vegetation, utilities, services, economy, population, or occupancy simulation.

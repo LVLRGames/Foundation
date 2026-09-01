@@ -63,7 +63,7 @@ Phase 10 does not implement:
 
 - the full override/authoring workflow implemented in Phase 11; see [authoring_overrides.md](authoring_overrides.md);
 - selective interiors planned for Phase 12;
-- advanced lanes, traffic control, or simulation planned for Phase 13;
+- Phase 13 lane and traffic-control metadata beyond referenced access-road lineage (see [advanced_roads_traffic.md](advanced_roads_traffic.md));
 - production parking/public-space meshes, markings, materials, collision, furniture, vegetation, or prefabs;
 - driveable road connections, vehicle/pedestrian navigation, or occupancy simulation;
 - addresses, utilities/services, economy, or population simulation;

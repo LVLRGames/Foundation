@@ -24,6 +24,8 @@ Phase 11 applies explicit typed authoring instructions to Phase 1–10 spatial r
 
 Phase 12 adds opt-in interior records for explicitly selected buildings and floors. These nested floor, room, portal, and connector values consume building, facade-entrance, and district-use authority without creating runtime architecture; see [selective_interiors.md](selective_interiors.md).
 
+Phase 13 derives deterministic lane cross-sections and intersection approach/movement/control metadata from Phase 2 topology without mutating the graph or creating road geometry, navigation, vehicles, or simulation; see [advanced_roads_traffic.md](advanced_roads_traffic.md).
+
 ## Data first, rendering second
 
 `FoundationTerrainGenerator` accepts a `FoundationTerrainProfile` and returns `FoundationTerrainData`. Generation performs no scene-tree mutations. The resulting packed arrays are the authority for heights, flags, surface IDs, per-cell diagonals, and dirty chunks.

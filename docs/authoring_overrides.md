@@ -59,7 +59,7 @@ The **Foundation Authoring** editor dock exposes record selection, typed JSON ed
 
 The policy covers Phase 1–10 spatial record kinds and the Phase 12 `interior` kind: anchors, road patterns/topology, blocks, parcels, buildings, facades, districts, parking facilities, public features, and selective interiors. Phase 11 does not edit authoritative terrain arrays or Phase 9 grading-plan arrays.
 
-The Phase 11 subsystem does not itself generate interiors; Phase 12 supplies the selective room/portal records that its policy can subsequently author. It does not add advanced roads, navigation, vehicles, traffic simulation (Phase 13), production meshes/materials/collision, prefabs, utilities, vegetation, a final persistence backend, or automatic dependency regeneration.
+The Phase 11 subsystem does not itself generate interiors or advanced-road metadata; Phase 12 supplies selective room/portal records and Phase 13 supplies lane/movement/control records that its policy can subsequently author. It does not add navigation, vehicles, traffic simulation, production meshes/materials/collision, prefabs, utilities, vegetation, a final persistence backend, or automatic dependency regeneration.
 
 ## Validation
 

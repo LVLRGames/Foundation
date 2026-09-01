@@ -27,6 +27,7 @@ extends Node3D
 @export var show_public_features := true
 @export var show_overrides := true
 @export var show_interiors := true
+@export var show_traffic_metadata := true
 @export var interior_floor_index := 0
 @export var show_streaming := false
 @export var show_relationships := true
@@ -116,6 +117,7 @@ func _sync_layer_visibility() -> void:
 	layer_registry.set_layer_enabled(&"public_features", show_public_features)
 	layer_registry.set_layer_enabled(&"overrides", show_overrides)
 	layer_registry.set_layer_enabled(&"interiors", show_interiors)
+	layer_registry.set_layer_enabled(&"traffic_metadata", show_traffic_metadata)
 	layer_registry.set_layer_enabled(&"streaming", show_streaming)
 	layer_registry.set_layer_enabled(&"relationships", show_relationships)
 

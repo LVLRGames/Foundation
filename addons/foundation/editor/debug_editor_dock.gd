@@ -78,6 +78,7 @@ func _build_interface() -> void:
 		[&"parking_facilities", "Parking demand, footprints, stalls, access, and validation"],
 		[&"public_features", "Public sites, service radii, anchor lineage, and validation"],
 		[&"interiors", "Selective rooms, portals, entrances, connectors, and validation"],
+		[&"traffic_metadata", "Road lanes, intersection movements, and control policy"],
 		[&"overrides", "Authored modifications, creations, tombstones, and conflicts"],
 		[&"streaming", "Chunk streaming lifecycle and visual LOD"],
 		[&"relationships", "Parent/child relationships"],
@@ -157,6 +158,14 @@ func _build_interface() -> void:
 	clear_interiors.text = "Clear Generated Interiors"
 	clear_interiors.pressed.connect(_clear_interiors_pressed)
 	_content.add_child(clear_interiors)
+	var generate_traffic := Button.new()
+	generate_traffic.text = "Generate / Regenerate Traffic Metadata"
+	generate_traffic.pressed.connect(_generate_traffic_metadata_pressed)
+	_content.add_child(generate_traffic)
+	var clear_traffic := Button.new()
+	clear_traffic.text = "Clear Generated Traffic Metadata"
+	clear_traffic.pressed.connect(_clear_traffic_metadata_pressed)
+	_content.add_child(clear_traffic)
 	var apply_grading := Button.new()
 	apply_grading.text = "Plan / Apply Terrain Grading"
 	apply_grading.pressed.connect(_apply_terrain_grading_pressed)
@@ -216,6 +225,7 @@ func _sync_from_view() -> void:
 	_layer_toggles[&"parking_facilities"].button_pressed = _view.show_parking_facilities
 	_layer_toggles[&"public_features"].button_pressed = _view.show_public_features
 	_layer_toggles[&"interiors"].button_pressed = _view.show_interiors
+	_layer_toggles[&"traffic_metadata"].button_pressed = _view.show_traffic_metadata
 	_layer_toggles[&"overrides"].button_pressed = _view.show_overrides
 	_layer_toggles[&"streaming"].button_pressed = _view.show_streaming
 	_layer_toggles[&"relationships"].button_pressed = _view.show_relationships
@@ -275,6 +285,7 @@ func _layer_toggled(value: bool, layer_id: StringName) -> void:
 		&"parking_facilities": _view.show_parking_facilities = value
 		&"public_features": _view.show_public_features = value
 		&"interiors": _view.show_interiors = value
+		&"traffic_metadata": _view.show_traffic_metadata = value
 		&"overrides": _view.show_overrides = value
 		&"streaming": _view.show_streaming = value
 		&"relationships": _view.show_relationships = value
@@ -403,6 +414,23 @@ func _debug_selection_changed(index: int) -> void:
 					district.minimum_height, district.maximum_height,
 					district.source_anchor_id, district.source_pattern_ids,
 					district.validation_state, district.owning_chunks, district.owning_regions,
+				]
+			elif record is FoundationRoadCrossSectionRecord:
+				var cross_section := record as FoundationRoadCrossSectionRecord
+				_selection_details.text = "%s\nRoad edge: %s\nLogical road: %s\nProfile: %s\nLanes: %d\nCarriageway: %.2f m\nSpeed: %.0f km/h\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					cross_section.stable_id, cross_section.road_edge_id,
+					cross_section.logical_road_id, cross_section.physical_profile_key,
+					cross_section.lanes.size(), cross_section.carriageway_width,
+					cross_section.speed_limit_kph, cross_section.validation_state,
+					cross_section.owning_chunks, cross_section.owning_regions,
+				]
+			elif record is FoundationIntersectionTrafficRecord:
+				var traffic := record as FoundationIntersectionTrafficRecord
+				_selection_details.text = "%s\nIntersection: %s\nNode: %s\nControl: %s\nApproaches: %d\nMovements: %d\nSignal phases: %d\nValidation: %s\nChunks: %s\nRegions: %s" % [
+					traffic.stable_id, traffic.intersection_id, traffic.node_id,
+					traffic.control_type, traffic.approaches.size(), traffic.movements.size(),
+					traffic.phase_groups.size(), traffic.validation_state,
+					traffic.owning_chunks, traffic.owning_regions,
 				]
 			else:
 				_selection_details.text = "%s\nBounds: %s\nParent: %s\nLayer: %s" % [
@@ -612,6 +640,34 @@ func _clear_interiors_pressed() -> void:
 	var removed := FoundationInteriorGenerator.clear_generated(world_node.world_data)
 	_view.rebuild()
 	_status.text = "Cleared %d generated interior record(s); authored interiors were preserved." % removed
+	_populate_selection_options()
+
+
+func _generate_traffic_metadata_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var result := FoundationTrafficMetadataGenerator.generate(world_node.world_data)
+	_view.rebuild()
+	_status.text = "Phase 13 generation %s: %d cross sections, %d lanes, %d intersection records, %d movements." % [
+		"completed" if result.success else "failed", result.generated_cross_section_count,
+		result.generated_lane_count, result.generated_intersection_traffic_count,
+		result.generated_movement_count,
+	]
+	_populate_selection_options()
+
+
+func _clear_traffic_metadata_pressed() -> void:
+	var world_node := _selected_world()
+	if world_node == null:
+		_status.text = "Select a FoundationWorld or FoundationDebugView node first."
+		return
+	var removed := FoundationTrafficMetadataGenerator.clear_generated(world_node.world_data)
+	_view.rebuild()
+	_status.text = "Cleared %d cross-section and %d intersection-traffic record(s); authored records were preserved." % [
+		removed["cross_sections"], removed["intersection_traffic"],
+	]
 	_populate_selection_options()
 
 
