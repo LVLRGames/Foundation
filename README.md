@@ -183,13 +183,25 @@ var site_result := FoundationSiteFeatureGenerator.generate(
 )
 assert(site_result.success)
 
+var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
+var interior_request := FoundationInteriorGenerationRequest.new()
+interior_request.building_ids = [buildings[0].stable_id]
+interior_request.floor_indices_by_building = {
+    String(buildings[0].stable_id): [0, 1],
+}
+var interior_result := FoundationInteriorGenerator.generate(
+    world_data,
+    interior_request
+)
+assert(interior_result.success)
+
 var blocks: Array[FoundationBlockRecord] = world_data.get_blocks()
 var parcels: Array[FoundationParcelRecord] = world_data.get_parcels()
-var buildings: Array[FoundationBuildingRecord] = world_data.get_buildings()
 var facades: Array[FoundationFacadeRecord] = world_data.get_facades()
 var districts: Array[FoundationDistrictRecord] = world_data.get_districts()
 var parking: Array[FoundationParkingFacilityRecord] = world_data.get_parking_facilities()
 var public_features: Array[FoundationPublicFeatureRecord] = world_data.get_public_features()
+var interiors: Array[FoundationInteriorRecord] = world_data.get_interiors()
 var authoring := FoundationAuthoringSession.new()
 var moved := authoring.translate_record(world_data, buildings[0].stable_id, Vector2(4.0, 0.0))
 assert(moved.success)
@@ -226,12 +238,13 @@ var facades := world_data.get_facades()
 var districts := world_data.get_districts()
 var parking := world_data.get_parking_facilities()
 var public_features := world_data.get_public_features()
+var interiors := world_data.get_interiors()
 var overrides := world_data.get_overrides()
 var parcel_district := world_data.get_district_for_parcel(parcels[0].stable_id)
 var parcel_parking := world_data.get_parking_for_parcel(parcels[0].stable_id)
 ```
 
-Phase 11 can author Phase 1–10 spatial records while preserving generator-owned base snapshots and explicit conflict state. Terrain arrays and grading plans remain outside the override policy. Addresses, interiors, production architecture/roads/bridges/parking/public spaces, driveable connections, navigation, traffic, utilities, and vegetation remain later contracts.
+The Phase 11 authoring workflow can author supported spatial records through Phase 12 while preserving generator-owned base snapshots and explicit conflict state. Terrain arrays and grading plans remain outside the override policy. Addresses, production architecture/roads/bridges/parking/public spaces, furniture, driveable connections, navigation, traffic, utilities, and vegetation remain later contracts.
 
 ## Validation
 

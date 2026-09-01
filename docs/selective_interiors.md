@@ -34,3 +34,7 @@ The `interiors` debug provider renders a selected floor's room plans, portal seg
 ## Explicit exclusions
 
 Phase 12 does not create scene nodes, production meshes or materials, walls/ceilings, furniture, collision, navmeshes, runtime doors, elevators, utilities, addresses, occupants, traffic, or gameplay simulation. Portals and connectors are abstract topology records for later systems. Phase 13 remains the advanced-road and traffic-metadata contract.
+
+## Validation
+
+Run `res://tests/run_phase_12_tests.gd` with Godot 4.7 after the Phase 0–11 suites, followed by runtime demo and editor/plugin smoke checks. The focused suite covers explicit selection and empty-request behavior, profile/request serialization, deterministic identities, signed concave geometry, floor/room coverage, portal connectivity and entrance provenance, consecutive-floor connectors, operation and selection caps, typed manifest and authoring translation round trips, generated/locked/overridden regeneration behavior, read-only validation, disposable/disabled debug output, and explicit scope exclusions.

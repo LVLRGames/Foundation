@@ -8,6 +8,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_test_profile_and_request_round_trip()
 	_test_explicit_selection_and_topology()
 	_test_empty_unselected_and_caps()
 	_test_concave_signed_geometry()
@@ -21,6 +22,23 @@ func _run() -> void:
 			push_error("FAIL: " + failure)
 		print("Foundation Phase 12 assertions: %d failure(s)" % _failures.size())
 		quit(1)
+
+
+func _test_profile_and_request_round_trip() -> void:
+	var profile := FoundationInteriorGenerationProfile.new()
+	profile.preferred_room_span = 7.25
+	profile.maximum_selected_buildings = 3
+	profile.debug_floor_separation = 0.25
+	var restored_profile := FoundationInteriorGenerationProfile.from_dict(profile.to_dict())
+	_check(restored_profile.to_dict() == profile.to_dict(), "interior generation profile has a versioned deterministic round trip")
+	_check(restored_profile.validation_errors().is_empty(), "restored interior generation profile remains valid")
+	var request := FoundationInteriorGenerationRequest.new()
+	request.request_id = &"phase_12_round_trip"
+	request.building_ids = [&"building_b", &"building_a", &"building_a"]
+	request.floor_indices_by_building = {"building_a": [2, 0, 2], "building_b": [1]}
+	var restored_request := FoundationInteriorGenerationRequest.from_dict(request.to_dict())
+	_check(restored_request.to_dict() == request.to_dict(), "explicit building/floor request has a canonical versioned round trip")
+	_check(restored_request.validation_errors(profile).is_empty(), "restored explicit interior request remains valid")
 
 
 func _test_explicit_selection_and_topology() -> void:
@@ -110,6 +128,10 @@ func _test_determinism_round_trip_and_authoring() -> void:
 	var locked_snapshot := FoundationSpatialRecordCodec.canonical_json(restored_interior.to_dict())
 	FoundationInteriorGenerator.generate(restored, request)
 	_check(FoundationSpatialRecordCodec.canonical_json(restored.get_interior_for_building(&"p12_building_a").to_dict()) == locked_snapshot, "regeneration preserves locked interior records")
+	restored_interior.authorship_state = FoundationSpatialRecord.AuthorshipState.OVERRIDDEN
+	var overridden_snapshot := FoundationSpatialRecordCodec.canonical_json(restored_interior.to_dict())
+	FoundationInteriorGenerator.generate(restored, request)
+	_check(FoundationSpatialRecordCodec.canonical_json(restored.get_interior_for_building(&"p12_building_a").to_dict()) == overridden_snapshot, "regeneration preserves overridden interior records")
 
 
 func _test_debug_and_scope() -> void:
