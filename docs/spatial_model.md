@@ -41,7 +41,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 11. Parking and public features (implemented in Phase 10)
 12. Full authoring tools (implemented in Phase 11)
 13. Selective interiors (implemented in Phase 12)
-14. Advanced roads and traffic metadata (Phase 13)
+14. Advanced roads and traffic metadata (implemented in Phase 13)
 
 ## Responsibilities
 
@@ -58,7 +58,7 @@ Phase 1 deliberately contained no procedural road topology. That separation rema
 | `FoundationLayerRegistry` | Stable layer registration independent of rendering |
 | `FoundationDebugView` | Disposable rendering of provider output in editor or runtime |
 
-The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, Phase 8 `districts`, Phase 10 `parking_facilities` plus `public_features`, and Phase 12 opt-in `interiors`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Phase 10 records and lineage are documented in [parking_public_features.md](parking_public_features.md). Phase 11 activates the separate override layer with deterministic typed instructions, conflict-safe reconciliation, validation, and bounded history; see [authoring_overrides.md](authoring_overrides.md). Phase 12 selective floor/room/portal topology is documented in [selective_interiors.md](selective_interiors.md).
+The Phase 1 `terrain`, `city_anchors`, and `override` layers are registered by default. Phase 2 also registers `road_pattern_areas`, `road_nodes`, `road_edges`, `logical_roads`, and `road_intersections`; later data phases add `blocks`, `parcels`, `buildings`, Phase 7 `facades`, Phase 8 `districts`, Phase 10 `parking_facilities` plus `public_features`, Phase 12 opt-in `interiors`, and Phase 13 `road_cross_sections` plus `intersection_traffic`. Phase 6 consumes the existing chunk runtime-state seam without adding an authoritative spatial layer; see [chunk_streaming.md](chunk_streaming.md). District lineage remains query-only and is documented in [district_generation.md](district_generation.md). Phase 9 stores its Node-free grading plan beside world data rather than as spatial records, and explicitly applies vertex edits to the separate terrain authority; see [terrain_grading.md](terrain_grading.md). Phase 10 records and lineage are documented in [parking_public_features.md](parking_public_features.md). Phase 11 activates the separate override layer with deterministic typed instructions, conflict-safe reconciliation, validation, and bounded history; see [authoring_overrides.md](authoring_overrides.md). Phase 12 selective floor/room/portal topology is documented in [selective_interiors.md](selective_interiors.md). Phase 13 advanced-road metadata is documented in [advanced_roads_traffic.md](advanced_roads_traffic.md).
 
 ## Coordinate conventions
 

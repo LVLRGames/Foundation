@@ -30,6 +30,8 @@ func supported_layers() -> Array[StringName]:
 		FoundationWorldData.PARKING_FACILITY_LAYER,
 		FoundationWorldData.PUBLIC_FEATURE_LAYER,
 		FoundationWorldData.INTERIOR_LAYER,
+		FoundationWorldData.ROAD_CROSS_SECTION_LAYER,
+		FoundationWorldData.INTERSECTION_TRAFFIC_LAYER,
 	]
 
 
@@ -49,6 +51,8 @@ func supported_record_kinds() -> Array[StringName]:
 		FoundationParkingFacilityRecord.RECORD_KIND,
 		FoundationPublicFeatureRecord.RECORD_KIND,
 		FoundationInteriorRecord.RECORD_KIND,
+		FoundationRoadCrossSectionRecord.RECORD_KIND,
+		FoundationIntersectionTrafficRecord.RECORD_KIND,
 	]
 
 

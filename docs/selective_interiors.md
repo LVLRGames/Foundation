@@ -33,7 +33,7 @@ The `interiors` debug provider renders a selected floor's room plans, portal seg
 
 ## Explicit exclusions
 
-Phase 12 does not create scene nodes, production meshes or materials, walls/ceilings, furniture, collision, navmeshes, runtime doors, elevators, utilities, addresses, occupants, traffic, or gameplay simulation. Portals and connectors are abstract topology records for later systems. Phase 13 remains the advanced-road and traffic-metadata contract.
+Phase 12 does not create scene nodes, production meshes or materials, walls/ceilings, furniture, collision, navmeshes, runtime doors, elevators, utilities, addresses, occupants, traffic, or gameplay simulation. Portals and connectors are abstract topology records for later systems. Phase 13 separately implements the advanced-road and traffic-metadata contract documented in [advanced_roads_traffic.md](advanced_roads_traffic.md).
 
 ## Validation
 

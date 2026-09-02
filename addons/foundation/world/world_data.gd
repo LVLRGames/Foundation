@@ -20,6 +20,8 @@ const DISTRICT_LAYER: StringName = FoundationDistrictRecord.LAYER_TYPE
 const PARKING_FACILITY_LAYER: StringName = FoundationParkingFacilityRecord.LAYER_TYPE
 const PUBLIC_FEATURE_LAYER: StringName = FoundationPublicFeatureRecord.LAYER_TYPE
 const INTERIOR_LAYER: StringName = FoundationInteriorRecord.LAYER_TYPE
+const ROAD_CROSS_SECTION_LAYER: StringName = FoundationRoadCrossSectionRecord.LAYER_TYPE
+const INTERSECTION_TRAFFIC_LAYER: StringName = FoundationIntersectionTrafficRecord.LAYER_TYPE
 
 var metadata: FoundationWorldMetadata
 var coordinate_system: FoundationCoordinateSystem
@@ -56,6 +58,8 @@ func initialize_default_layers() -> void:
 	register_layer_type(PARKING_FACILITY_LAYER)
 	register_layer_type(PUBLIC_FEATURE_LAYER)
 	register_layer_type(INTERIOR_LAYER)
+	register_layer_type(ROAD_CROSS_SECTION_LAYER)
+	register_layer_type(INTERSECTION_TRAFFIC_LAYER)
 
 
 func initialize_partitions() -> void:
@@ -270,6 +274,49 @@ func get_interiors() -> Array[FoundationInteriorRecord]:
 		if record is FoundationInteriorRecord:
 			result.append(record as FoundationInteriorRecord)
 	return result
+
+
+func get_road_cross_sections() -> Array[FoundationRoadCrossSectionRecord]:
+	var result: Array[FoundationRoadCrossSectionRecord] = []
+	var layer := get_layer(ROAD_CROSS_SECTION_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationRoadCrossSectionRecord:
+			result.append(record as FoundationRoadCrossSectionRecord)
+	return result
+
+
+func get_intersection_traffic() -> Array[FoundationIntersectionTrafficRecord]:
+	var result: Array[FoundationIntersectionTrafficRecord] = []
+	var layer := get_layer(INTERSECTION_TRAFFIC_LAYER)
+	if layer == null:
+		return result
+	for record in layer.get_records():
+		if record is FoundationIntersectionTrafficRecord:
+			result.append(record as FoundationIntersectionTrafficRecord)
+	return result
+
+
+func get_cross_section_for_edge(edge_id: StringName) -> FoundationRoadCrossSectionRecord:
+	for record in get_road_cross_sections():
+		if record.road_edge_id == edge_id:
+			return record
+	return null
+
+
+func get_traffic_for_intersection(intersection_id: StringName) -> FoundationIntersectionTrafficRecord:
+	for record in get_intersection_traffic():
+		if record.intersection_id == intersection_id:
+			return record
+	return null
+
+
+func get_traffic_for_node(node_id: StringName) -> FoundationIntersectionTrafficRecord:
+	for record in get_intersection_traffic():
+		if record.node_id == node_id:
+			return record
+	return null
 
 
 func get_interior_for_building(building_id: StringName) -> FoundationInteriorRecord:

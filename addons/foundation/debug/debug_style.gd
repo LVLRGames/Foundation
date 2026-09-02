@@ -135,6 +135,18 @@ extends Resource
 @export var interior_entrance := Color("ffca28")
 @export var interior_connector := Color("ab47bc")
 @export var interior_invalid := Color("f44336")
+@export var traffic_lane_forward := Color("29b6f6")
+@export var traffic_lane_reverse := Color("26c6da")
+@export var traffic_turn_left := Color("ffca28")
+@export var traffic_turn_through := Color("66bb6a")
+@export var traffic_turn_right := Color("ab47bc")
+@export var traffic_control_signal := Color("ef5350")
+@export var traffic_control_priority := Color("ffb74d")
+@export var traffic_control_stop := Color("ffffff")
+@export var traffic_locked := Color("ffee58")
+@export var traffic_overridden := Color("f48fb1")
+@export var traffic_invalid := Color("f44336")
+@export var traffic_warning := Color("ffca28")
 @export var public_feature_fill := Color(0.40, 0.73, 0.42, 0.26)
 @export var public_feature_service := Color(0.40, 0.73, 0.42, 0.22)
 @export var override_modify := Color("ffca28")
@@ -426,6 +438,30 @@ func color_for(purpose: StringName) -> Color:
 			return interior_connector
 		&"interior_invalid":
 			return interior_invalid
+		&"traffic_lane_forward":
+			return traffic_lane_forward
+		&"traffic_lane_reverse":
+			return traffic_lane_reverse
+		&"traffic_turn_left":
+			return traffic_turn_left
+		&"traffic_turn_through":
+			return traffic_turn_through
+		&"traffic_turn_right":
+			return traffic_turn_right
+		&"traffic_control_signal":
+			return traffic_control_signal
+		&"traffic_control_priority":
+			return traffic_control_priority
+		&"traffic_control_stop":
+			return traffic_control_stop
+		&"traffic_locked":
+			return traffic_locked
+		&"traffic_overridden":
+			return traffic_overridden
+		&"traffic_invalid":
+			return traffic_invalid
+		&"traffic_warning":
+			return traffic_warning
 		&"public_feature_anchor_link":
 			return relationship
 		&"override_modify":

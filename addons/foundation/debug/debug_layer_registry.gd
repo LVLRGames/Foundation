@@ -10,6 +10,7 @@ const PARKING_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers
 const PUBLIC_FEATURE_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/public_feature_debug_provider.gd")
 const OVERRIDE_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/override_debug_provider.gd")
 const INTERIOR_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/interior_debug_provider.gd")
+const TRAFFIC_METADATA_DEBUG_PROVIDER := preload("res://addons/foundation/debug/providers/traffic_metadata_debug_provider.gd")
 
 var enabled := true
 var last_provider_invocations := 0
@@ -80,4 +81,5 @@ func register_phase_1_defaults() -> void:
 	register_provider(PUBLIC_FEATURE_DEBUG_PROVIDER.new())
 	register_provider(OVERRIDE_DEBUG_PROVIDER.new())
 	register_provider(INTERIOR_DEBUG_PROVIDER.new())
+	register_provider(TRAFFIC_METADATA_DEBUG_PROVIDER.new())
 	register_provider(STREAMING_DEBUG_PROVIDER.new(), false)

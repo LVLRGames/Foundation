@@ -2,7 +2,7 @@
 
 Phase 2 turns Phase 1 city anchors, spatial records, and Phase 0 terrain into a deterministic renderer-independent road-planning graph. The visible output is disposable batched debug geometry. No road mesh, lane graph, gameplay navigation, traffic system, block, parcel, or terrain deformation is created.
 
-Phase 3 now consumes these route polylines to extract bounded abstract blocks; see [block_extraction.md](block_extraction.md). Road records remain independent authoritative inputs.
+Phase 3 consumes these route polylines to extract bounded abstract blocks; see [block_extraction.md](block_extraction.md). Phase 13 now derives lane cross-sections and intersection movement/control metadata without mutating this graph; see [advanced_roads_traffic.md](advanced_roads_traffic.md). Road records remain independent authoritative inputs.
 
 ## Data model
 
@@ -78,7 +78,7 @@ Logical-road IDs derive from the canonical minimum edge ID in the chain. Records
 
 ## Abstract intersections and validation
 
-Degree-three-or-higher nodes receive `FoundationIntersectionRecord` data with connected, incoming, and outgoing edges; degree; class-pair relationships; and `t_junction`, `crossroads`, or `complex_junction` classification. These are graph records only, with no lanes, turn paths, signals, signs, traffic controls, collision, or mesh.
+Degree-three-or-higher nodes receive `FoundationIntersectionRecord` data with connected, incoming, and outgoing edges; degree; class-pair relationships; and `t_junction`, `crossroads`, or `complex_junction` classification. These remain graph records with no embedded lane, turn, control, collision, or mesh state. Phase 13 attaches separate derived records while preserving this contract.
 
 `FoundationRoadTopologyValidator` reports:
 

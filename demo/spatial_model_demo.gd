@@ -19,6 +19,7 @@ var district_result: FoundationDistrictGenerationResult
 var grading_result: FoundationTerrainGradingResult
 var site_feature_result: FoundationSiteFeatureGenerationResult
 var interior_result: FoundationInteriorGenerationResult
+var traffic_result: FoundationTrafficMetadataGenerationResult
 var authoring_session := FoundationAuthoringSession.new()
 
 
@@ -39,6 +40,7 @@ func _ready() -> void:
 		grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 	site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
 	interior_result = FoundationInteriorGenerator.generate(world.world_data, _demo_interior_request())
+	traffic_result = FoundationTrafficMetadataGenerator.generate(world.world_data)
 	_bind_controls()
 	_populate_record_options()
 	debug_view.set_debug_enabled(true)
@@ -57,6 +59,7 @@ func _ready() -> void:
 	debug_view.show_public_features = %PublicFeatureToggle.button_pressed
 	debug_view.show_overrides = %OverrideToggle.button_pressed
 	debug_view.show_interiors = %InteriorToggle.button_pressed
+	debug_view.show_traffic_metadata = %TrafficToggle.button_pressed
 	debug_view.rebuild()
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	_update_status()
@@ -329,6 +332,7 @@ func _bind_controls() -> void:
 	%PublicFeatureToggle.toggled.connect(_layer_toggled.bind(&"public_features"))
 	%OverrideToggle.toggled.connect(_layer_toggled.bind(&"overrides"))
 	%InteriorToggle.toggled.connect(_layer_toggled.bind(&"interiors"))
+	%TrafficToggle.toggled.connect(_layer_toggled.bind(&"traffic_metadata"))
 	%RelationshipToggle.toggled.connect(_layer_toggled.bind(&"relationships"))
 	%RebuildButton.pressed.connect(_rebuild_debug)
 	%RegenerateButton.pressed.connect(_regenerate_selected_stage)
@@ -385,6 +389,7 @@ func _layer_toggled(enabled: bool, layer_id: StringName) -> void:
 		&"public_features": debug_view.show_public_features = enabled
 		&"overrides": debug_view.show_overrides = enabled
 		&"interiors": debug_view.show_interiors = enabled
+		&"traffic_metadata": debug_view.show_traffic_metadata = enabled
 		&"relationships": debug_view.show_relationships = enabled
 	_rebuild_debug()
 
@@ -408,7 +413,7 @@ func _configure_generation_controls() -> void:
 	%ProfileOptions.add_item("Terrain following")
 	%ProfileOptions.add_item("Rectilinear")
 	%StageOptions.clear()
-	%StageOptions.add_item("Full Phase 2 through Phase 12")
+	%StageOptions.add_item("Full Phase 2 through Phase 13")
 	%StageOptions.add_item("Logical roads + intersections")
 	%StageOptions.add_item("Block extraction")
 	%StageOptions.add_item("Parcel subdivision")
@@ -418,6 +423,7 @@ func _configure_generation_controls() -> void:
 	%StageOptions.add_item("Terrain grading: roads, pads, bridges")
 	%StageOptions.add_item("Parking and public features")
 	%StageOptions.add_item("Selective interiors")
+	%StageOptions.add_item("Advanced roads + traffic metadata")
 	%StateOptions.clear()
 	%StateOptions.add_item("Generated")
 	%StateOptions.add_item("Locked")
@@ -425,11 +431,14 @@ func _configure_generation_controls() -> void:
 
 
 func _regenerate_selected_stage() -> void:
-	FoundationInteriorGenerator.clear_generated(world.world_data)
-	if %StageOptions.selected not in [8, 9] and not _revert_grading_if_applied():
+	if %StageOptions.selected != 9:
+		FoundationInteriorGenerator.clear_generated(world.world_data)
+	if %StageOptions.selected != 10:
+		FoundationTrafficMetadataGenerator.clear_generated(world.world_data)
+	if %StageOptions.selected not in [8, 9, 10] and not _revert_grading_if_applied():
 		status_label.text = "Regeneration refused: applied terrain grading no longer matches the terrain."
 		return
-	if %StageOptions.selected not in [8, 9]:
+	if %StageOptions.selected not in [8, 9, 10]:
 		FoundationSiteFeatureGenerator.clear_generated(world.world_data)
 	match %StageOptions.selected:
 		0:
@@ -451,6 +460,7 @@ func _regenerate_selected_stage() -> void:
 				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 			site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
 			interior_result = FoundationInteriorGenerator.generate(world.world_data, _demo_interior_request())
+			traffic_result = FoundationTrafficMetadataGenerator.generate(world.world_data)
 		1:
 			FoundationDistrictGenerator.clear_generated(world.world_data)
 			road_result = FoundationRoadTopologyGenerator.regenerate_derived_topology(world.world_data)
@@ -480,8 +490,10 @@ func _regenerate_selected_stage() -> void:
 				grading_result = FoundationTerrainGrader.apply_plan(world.world_data, terrain_data, grading_result.plan)
 		8:
 			site_feature_result = FoundationSiteFeatureGenerator.generate(world.world_data)
-		_:
+		9:
 			interior_result = FoundationInteriorGenerator.generate(world.world_data, _demo_interior_request())
+		_:
+			traffic_result = FoundationTrafficMetadataGenerator.generate(world.world_data)
 	authoring_session.reapply_all(world.world_data)
 	_populate_record_options()
 	_rebuild_debug()
@@ -493,6 +505,7 @@ func _clear_road_data() -> void:
 		return
 	FoundationSiteFeatureGenerator.clear_generated(world.world_data)
 	FoundationInteriorGenerator.clear_generated(world.world_data)
+	FoundationTrafficMetadataGenerator.clear_generated(world.world_data)
 	FoundationDistrictGenerator.clear_generated(world.world_data)
 	FoundationFacadeGenerator.clear_generated(world.world_data)
 	FoundationBuildingGenerator.clear_generated(world.world_data)
@@ -595,7 +608,10 @@ func _update_status() -> void:
 	for override_record in world.world_data.get_overrides():
 		if override_record.conflict_state != FoundationOverrideRecord.CONFLICT_NONE:
 			authoring_conflicts += 1
-	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d parking | %d public | %d interiors | %d overrides/%d conflicts | %d debug" % [
+	var lane_count := 0
+	for cross_section in world.world_data.get_road_cross_sections():
+		lane_count += cross_section.lanes.size()
+	status_label.text = "%d anchors | %d patterns | %d nodes | %d edges | %d logical | %d intersections | %d issues | %d blocks | %d parcels | %d buildings | %d facades | %d districts | %d parking | %d public | %d interiors | %d lanes | %d controls | %d overrides/%d conflicts | %d debug" % [
 		world.world_data.get_anchors().size(),
 		world.world_data.get_road_pattern_areas().size(),
 		world.world_data.get_road_nodes().size(),
@@ -611,6 +627,8 @@ func _update_status() -> void:
 		world.world_data.get_parking_facilities().size(),
 		world.world_data.get_public_features().size(),
 		world.world_data.get_interiors().size(),
+		lane_count,
+		world.world_data.get_intersection_traffic().size(),
 		world.world_data.get_overrides().size(),
 		authoring_conflicts,
 		debug_view.last_primitive_count,
